@@ -1,8 +1,10 @@
+// firebase-config.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-export const firebaseConfig = {
+// <-- Replace these with your project's config if different -->
+const firebaseConfig = {
   apiKey: "AIzaSyCWQWPa3OEH6ClFQ5gv9yswr8N1Yh1vstE",
   authDomain: "study-chat-app-4a40e.firebaseapp.com",
   projectId: "study-chat-app-4a40e",
