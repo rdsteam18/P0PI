@@ -96,18 +96,4 @@ export async function renderFriendRequests() {
       friendRequestsDiv.appendChild(div);
     }
   });
-  // Search students by name and show “Send Friend Request” button
-    document.getElementById('searchInput').addEventListener('input', async (e) => {
-      const searchText = e.target.value.trim();
-      const resultsDiv = document.getElementById('searchResults');
-      resultsDiv.innerHTML = '';
-      if (searchText.length < 2) return; // minimum 2 characters
-
-      const q = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\uf8ff'));
-      const querySnapshot = await getDocs(q);
-
-      if (!currentUser) {
-        resultsDiv.innerHTML = 'Please login to send friend requests.';
-        return;
-      }
 }
