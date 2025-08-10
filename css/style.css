@@ -5,7 +5,6 @@ body {
   background: #f5f5f7;
   color: #222;
 }
-
 header {
   display: flex;
   align-items: center;
@@ -14,12 +13,10 @@ header {
   color: white;
   padding: 12px;
 }
-
 .logo {
   width: 40px;
   height: 40px;
 }
-
 button {
   padding: 6px 12px;
   border-radius: 6px;
@@ -29,28 +26,20 @@ button {
   color: #0b63d6;
   font-weight: bold;
 }
-
 button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 main {
   margin-top: 16px;
   display: flex;
-  flex-wrap: wrap;
   gap: 16px;
+  align-items: flex-start;
 }
-
-section {
-  background: white;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.1);
-  flex: 1 1 300px;
-  max-width: 400px;
-  min-width: 280px;
-}
+section { background: white; border-radius: 8px; padding: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+#sidebar { width: 340px; display:flex; flex-direction:column; gap:8px; }
+#chatSection { flex:1 1 600px; min-width:320px; }
+#worldSection { width: 340px; min-width:280px; max-height: 600px; overflow:auto; }
 
 #messages, #worldMessages {
   height: 300px;
@@ -60,116 +49,33 @@ section {
   padding: 8px;
   margin-bottom: 8px;
   font-size: 14px;
-  display: flex;
-  flex-direction: column;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
 
-.msg {
-  margin: 4px 0;
-  padding: 6px 10px;
-  border-radius: 12px;
-  max-width: 80%;
-  word-wrap: break-word;
-  position: relative;
-}
-
-.msg .deleteBtn {
-  position: absolute;
-  top: 2px;
-  right: 6px;
-  background: transparent;
-  border: none;
-  color: red;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.sent {
-  background: #0b63d6;
-  color: white;
-  align-self: flex-end;
-  margin-left: auto;
-}
-
-.received {
-  background: #d2d6dc;
-  color: black;
-  align-self: flex-start;
-}
-
-.input-row {
-  display: flex;
-  gap: 8px;
-}
-
-input[type="text"] {
-  flex: 1;
-  padding: 8px 10px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-}
+.msg { margin: 4px 0; padding: 6px 10px; border-radius: 12px; max-width: 80%; word-wrap: break-word; position:relative; }
+.msg .deleteBtn { position:absolute; top:4px; right:6px; background:transparent; border:none; color:#900; cursor:pointer; }
+.sent { background: #0b63d6; color: white; align-self: flex-end; margin-left: auto; }
+.received { background: #d2d6dc; color: black; align-self: flex-start; }
+.input-row { display:flex; gap:8px; }
+input[type="text"] { flex:1; padding:8px 10px; border-radius:6px; border:1px solid #ccc; }
 
 .friendName {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 4px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background-color 0.2s ease;
+  display:flex; align-items:center; gap:8px; padding:8px 4px; border-bottom:1px solid #eee; cursor:pointer; border-radius:6px; transition:background-color 0.2s;
 }
+.friendName:hover { background:#eef3ff; }
+.friendName img { width:36px; height:36px; border-radius:50%; object-fit:cover; }
 
-.friendName:hover {
-  background: #eef3ff;
-}
+.acceptBtn, .rejectBtn, .sendRequestBtn, .blockBtn, .unblockBtn { margin-left:8px; padding:4px 8px; border-radius:6px; border:none; cursor:pointer; font-size:12px; }
+.acceptBtn { background:#4caf50; color:white; }
+.rejectBtn { background:#f44336; color:white; }
+.sendRequestBtn { background:#0b63d6; color:white; }
+.blockBtn { background:#f44336; color:white; }
+.unblockBtn { background:#4caf50; color:white; }
 
-.friendName img {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-}
-
-.acceptBtn, .rejectBtn, .sendRequestBtn, .blockBtn, .unblockBtn {
-  margin-left: 8px;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.acceptBtn {
-  background: #4caf50;
-  color: white;
-}
-
-.rejectBtn {
-  background: #f44336;
-  color: white;
-}
-
-.sendRequestBtn {
-  background: #0b63d6;
-  color: white;
-}
-
-.blockBtn {
-  background: #f44336;
-  color: white;
-}
-
-.unblockBtn {
-  background: #4caf50;
-  color: white;
-}
-
-@media (max-width: 768px) {
-  main {
-    flex-direction: column;
-    max-width: 100%;
-  }
-  section {
-    max-width: 100%;
-  }
+@media (max-width:768px) {
+  main { flex-direction:column; }
+  #sidebar, #worldSection { width:100%; }
+  #chatSection { width:100%; }
 }
