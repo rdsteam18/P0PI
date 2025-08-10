@@ -35,4 +35,29 @@ async function saveUserProfile(user) {
     friendRequests: [],
     blockedUsers: [],    // for block/unblock feature
     createdAt: new Date().toISOString()
-  }, { merge:
+  }, { merge: true });
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    alert('Login failed: ' + (err.message || err));
+  }
+});
+
+export function logout() {
+  return signOut(auth);
+}
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  showUser(user);
+  if (!user) {
+    clearFriendRequestsUI();
+    clearFriendsListUI();
+    // trigger other cleanups if needed
+    document.getElementById('chatArea').style.display = 'none';
+  }
+});
+
