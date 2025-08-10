@@ -1,52 +1,52 @@
+// worldChat.js
 import { db } from "./firebase-config.js";
 import { getCurrentUser } from "./auth.js";
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import { escapeHtml } from "./utils.js";
 
 const worldMessagesDiv = document.getElementById('worldMessages');
-const worldMsgInput = document.getElementById('worldMsgInput');
+const worldInput = document.getElementById('worldMsgInput');
 const worldSendBtn = document.getElementById('worldSendBtn');
 
 let unsubscribeWorld = null;
 
-export function loadWorldMessages() {
-  if (unsubscribeWorld) unsubscribeWorld();
-
+export function listenWorld() {
   const messagesRef = collection(db, 'worldMessages');
   const q = query(messagesRef, orderBy('timestamp'));
-
-  unsubscribeWorld = onSnapshot(q, (snapshot) => {
+  if (unsubscribeWorld) unsubscribeWorld();
+  unsubscribeWorld = onSnapshot(q, snapshot => {
     worldMessagesDiv.innerHTML = '';
     snapshot.forEach(docSnap => {
-      const msg = docSnap.data();
+      const m = docSnap.data();
       const el = document.createElement('div');
       el.className = 'msg received';
-      const time = msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString() : '';
-      el.innerHTML = `<strong>${escapeHtml(msg.name || 'Anonymous')}:</strong> ${escapeHtml(msg.text || '')} <br><small>${time}</small>`;
+      el.innerHTML = `<strong>${escapeHtml(m.name||'Anonymous')}:</strong> ${escapeHtml(m.text||'')} <br><small style="color:#666">${m.timestamp && m.timestamp.toDate ? m.timestamp.toDate().toLocaleTimeString() : ''}</small>`;
       worldMessagesDiv.appendChild(el);
     });
     worldMessagesDiv.scrollTop = worldMessagesDiv.scrollHeight;
-  }, (err) => {
-    console.error('World chat onSnapshot error', err);
   });
 }
 
 worldSendBtn.addEventListener('click', async () => {
-  const currentUser = getCurrentUser();
-  if (!currentUser) return alert('Please login first');
-  const text = worldMsgInput.value.trim();
+  const me = getCurrentUser();
+  if (!me) { alert('Please login'); return; }
+  const text = worldInput.value.trim();
   if (!text) return;
-
   try {
     await addDoc(collection(db, 'worldMessages'), {
       text,
-      name: currentUser.displayName || currentUser.email || 'Anonymous',
-      uid: currentUser.uid,
+      name: me.displayName || me.email || 'Anonymous',
+      uid: me.uid,
       timestamp: serverTimestamp()
     });
-    worldMsgInput.value = '';
+    worldInput.value = '';
   } catch (err) {
-    alert('Failed to send world message');
-    console.error(err);
+    console.error('world send err', err);
+    alert('Failed to send');
   }
 });
+
+// start listening when auth changes
+window.addEventListener('authChanged', () => listenWorld());
+// immediate call to start (if module loads after auth)
+listenWorld();
