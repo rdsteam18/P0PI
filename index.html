@@ -1,76 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>P0PI - Study Chat with Friends</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <title>P0PI - Study Chat with Friend Requests</title>
+  <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <header>
-    <img src="./assets/logo.png" alt="P0PI Logo" class="logo" />
-    <h1>P0PI</h1>
-    <button id="loginBtn">Login with Google</button>
-    <div id="userInfo"></div>
-    <button id="logoutBtn" style="display:none;">Logout</button>
-  </header>
+  <div id="app">
 
-  <main>
-    <section id="searchSection">
-      <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
-      <div id="searchResults"></div>
-    </section>
-
-    <section id="friendRequestsSection">
-      <h2>Friend Requests</h2>
-      <div id="friendRequests">No friend requests</div>
-    </section>
-
-    <section id="friendsListSection">
-      <h2>Friends List</h2>
-      <div id="friendsList">No friends yet</div>
-    </section>
-
-    <section id="chatSection" style="display:none;">
-      <h2>Chat with <span id="chatFriendName"></span></h2>
-      <div id="messages" class="chat-messages"></div>
-      <div class="input-row">
-        <input id="msgInput" type="text" placeholder="Type a message" />
-        <button id="sendBtn">Send</button>
+    <!-- Header with Login/Logout -->
+    <header>
+      <h1>P0PI</h1>
+      <div id="authSection">
+        <button id="loginBtn">Login with Google</button>
+        <div id="userInfo"></div>
       </div>
-    </section>
+    </header>
 
-    <section id="worldChatSection">
-      <h2>World Chat</h2>
-      <div id="worldMessages" class="chat-messages"></div>
-      <div class="input-row">
-        <input id="worldMsgInput" type="text" placeholder="Say something to the world..." />
-        <button id="worldSendBtn">Send</button>
-      </div>
-    </section>
-  </main>
+    <!-- Main Container -->
+    <main>
+      <!-- Sidebar: Search + Friends + Friend Requests -->
+      <aside>
+        <input type="text" id="searchInput" placeholder="Search students (min 2 chars)" autocomplete="off" />
+        <div id="searchResults" class="scrollable"></div>
 
-  <script type="module" src="./js/firebase-config.js"></script>
-  <script type="module" src="./js/auth.js"></script>
-  <script type="module" src="./js/friendRequests.js"></script>
-  <script type="module" src="./js/friendsList.js"></script>
-  <script type="module" src="./js/chat.js"></script>
-  <script type="module" src="./js/worldChat.js"></script>
-  <script type="module" src="./js/utils.js"></script>
-  <script>// Search students by name and show “Send Friend Request” button
-    document.getElementById('searchInput').addEventListener('input', async (e) => {
-      const searchText = e.target.value.trim();
-      const resultsDiv = document.getElementById('searchResults');
-      resultsDiv.innerHTML = '';
-      if (searchText.length < 2) return; // minimum 2 characters
+        <h3>Friend Requests</h3>
+        <div id="friendRequests" class="scrollable">No friend requests</div>
 
-      const q = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\uf8ff'));
-      const querySnapshot = await getDocs(q);
+        <h3>Friends List</h3>
+        <div id="friendsList" class="scrollable">No friends yet</div>
+      </aside>
 
-      if (!currentUser) {
-        resultsDiv.innerHTML = 'Please login to send friend requests.';
-        return;
-      }</script>
+      <!-- Chat Area -->
+      <section id="chatArea" style="display:none;">
+        <header id="chatHeader">
+          <div id="chatFriendInfo"></div>
+          <button id="blockBtn">Block</button>
+          <button id="deleteChatBtn">Delete Chat</button>
+        </header>
+
+        <div id="messages" class="scrollable"></div>
+
+        <footer>
+          <input id="msgInput" type="text" placeholder="Type a message" autocomplete="off" />
+          <button id="sendBtn">Send</button>
+        </footer>
+      </section>
+    </main>
+  </div>
+
+  <!-- Firebase and app JS modules -->
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/friendRequests.js"></script>
+  <script type="module" src="js/friends.js"></script>
+  <script type="module" src="js/search.js"></script>
+  <script type="module" src="js/chat.js"></script>
+  <script type="module" src="js/utils.js"></script>
 </body>
 </html>
-
