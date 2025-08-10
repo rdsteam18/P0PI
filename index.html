@@ -1,34 +1,52 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Study Chat</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Study Chat — Fixed</title>
   <style>
-    #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; }
-    .msg { margin: 5px 0; }
-    .msg strong { color: blue; }
+    body{font-family:system-ui,Segoe UI,Roboto,Arial;margin:16px}
+    #messages{border:1px solid #ccc;height:300px;overflow-y:auto;padding:10px;background:#fafafa}
+    .msg{margin:6px 0;padding:6px;border-radius:6px}
+    .msg strong{color:#0b63d6}
+    #searchResults div{padding:6px;border-bottom:1px solid #eee}
+    #userInfo img{vertical-align:middle;border-radius:50%;width:36px;margin-right:8px}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type=text]{padding:8px;border-radius:6px;border:1px solid #ccc}
+    button{padding:8px 10px;border-radius:6px;border:1px solid #888;background:#fff;cursor:pointer}
   </style>
 </head>
 <body>
   <h1>Study Chat</h1>
-  <button id="loginBtn">Login with Google</button>
-  <div id="userInfo"></div>
-  <input type="text" id="searchInput" placeholder="Search students by name" />
-<div id="searchResults"></div>
-
-
-  <div id="chatArea" style="display:none;">
-    <div id="messages"></div>
-    <input id="msgInput" type="text" placeholder="Type a message" />
-    <button id="sendBtn">Send</button>
+  <div id="controls" class="row">
+    <button id="loginBtn">Login with Google</button>
+    <div id="userInfo"></div>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-    import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+  <div style="margin-top:12px">
+    <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
+    <div id="searchResults"></div>
+  </div>
 
+  <div id="chatArea" style="display:none;margin-top:12px">
+    <div id="messages"></div>
+    <div class="row" style="margin-top:8px">
+      <input id="msgInput" type="text" placeholder="Type a message" style="flex:1" />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <!-- All JS inside a single module script to avoid stray text outside script tags -->
+  <script type="module">
+    // Imports (all at top) - using Firebase JS SDK v12 (modular)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import {
+      getFirestore, doc as docRef, setDoc, collection, addDoc, serverTimestamp,
+      query, orderBy, onSnapshot, where, getDocs
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    // ----- CONFIG -----
     const firebaseConfig = {
       apiKey: "AIzaSyCWQWPa3OEH6ClFQ5gv9yswr8N1Yh1vstE",
       authDomain: "study-chat-app-4a40e.firebaseapp.com",
@@ -39,106 +57,151 @@
       measurementId: "G-HQTQLDYT0Q"
     };
 
+    // ----- INIT -----
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
 
+    // ----- STATE -----
     let currentUser = null;
 
-    // Login
-    document.getElementById("loginBtn").addEventListener("click", async () => {
+    // ----- HELPERS -----
+    async function saveUserProfile(user) {
+      if (!user || !user.uid) return;
+      const userRef = docRef(db, "users", user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        name: user.displayName || "No Name",
+        email: user.email || "",
+        photo: user.photoURL || "",
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+    }
+
+    function showUser(user) {
+      const ui = document.getElementById('userInfo');
+      if (!user) { ui.innerHTML = ''; return; }
+      ui.innerHTML = `<img src="${user.photoURL||''}" alt="photo"/> <strong>${user.displayName||user.email||'User'}</strong> <button id="logoutBtn">Logout</button>`;
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        await signOut(auth);
+      });
+    }
+
+    function ensureLoggedInAlert() {
+      if (!currentUser) { alert('Please login first'); return false; }
+      return true;
+    }
+
+    // ----- AUTH FLOW -----
+    document.getElementById('loginBtn').addEventListener('click', async () => {
       try {
         const result = await signInWithPopup(auth, provider);
-        currentUser = result.user;
-        document.getElementById("userInfo").innerHTML = `
-          <p>Logged in as: ${currentUser.displayName}</p>
-          <button id="logoutBtn">Logout</button>
-        `;
-        document.getElementById("chatArea").style.display = "block";
-
-        document.getElementById("logoutBtn").addEventListener("click", () => {
-          signOut(auth);
-          currentUser = null;
-          document.getElementById("userInfo").innerHTML = "";
-          document.getElementById("chatArea").style.display = "none";
-        });
-
-        loadMessages();
+        // onAuthStateChanged will handle UI and saving profile
       } catch (err) {
-        console.error(err);
-        alert("Login failed");
+        console.error('Login error', err);
+        alert('Login failed: ' + (err.message || err));
       }
     });
 
-    // Send message
-    document.getElementById("sendBtn").addEventListener("click", async () => {
-      const text = document.getElementById("msgInput").value.trim();
-      if (!text) return;
-
-      await addDoc(collection(db, "messages"), {
-        text,
-        name: currentUser.displayName,
-        uid: currentUser.uid,
-        timestamp: serverTimestamp()
-      });
-
-      document.getElementById("msgInput").value = "";
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        await saveUserProfile(user);
+        showUser(user);
+        document.getElementById('chatArea').style.display = 'block';
+        loadMessages();
+      } else {
+        currentUser = null;
+        showUser(null);
+        document.getElementById('chatArea').style.display = 'none';
+      }
     });
 
-    // Load messages realtime
+    // ----- SENDING MESSAGES -----
+    document.getElementById('sendBtn').addEventListener('click', async () => {
+      if (!ensureLoggedInAlert()) return;
+      const textEl = document.getElementById('msgInput');
+      const text = textEl.value.trim();
+      if (!text) return;
+      try {
+        await addDoc(collection(db, 'messages'), {
+          text,
+          name: currentUser.displayName || currentUser.email || 'Anonymous',
+          uid: currentUser.uid,
+          timestamp: serverTimestamp()
+        });
+        textEl.value = '';
+      } catch (err) {
+        console.error('Send message error', err);
+        alert('Failed to send message');
+      }
+    });
+
+    // ----- REALTIME MESSAGES -----
+    let unsubscribeMessages = null;
     function loadMessages() {
-      const q = query(collection(db, "messages"), orderBy("timestamp"));
-      onSnapshot(q, (snapshot) => {
-        const messagesDiv = document.getElementById("messages");
-        messagesDiv.innerHTML = "";
-        snapshot.forEach((doc) => {
-          const msg = doc.data();
-          const msgEl = document.createElement("div");
-          msgEl.classList.add("msg");
-          msgEl.innerHTML = `<strong>${msg.name}:</strong> ${msg.text}`;
-          messagesDiv.appendChild(msgEl);
+      if (unsubscribeMessages) unsubscribeMessages();
+      const q = query(collection(db, 'messages'), orderBy('timestamp'));
+      unsubscribeMessages = onSnapshot(q, (snapshot) => {
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML = '';
+        snapshot.forEach((snapDoc) => {
+          const msg = snapDoc.data();
+          const el = document.createElement('div');
+          el.className = 'msg';
+          const time = msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString() : '';
+          el.innerHTML = `<strong>${escapeHtml(msg.name || 'Unknown')}:</strong> ${escapeHtml(msg.text || '')} <span style="float:right;font-size:0.8em;color:#666">${time}</span>`;
+          messagesDiv.appendChild(el);
         });
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }, (err) => {
+        console.error('Messages onSnapshot error', err);
       });
     }
-    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-const db = getFirestore(app);
+    // ----- SEARCH USERS -----
+    // Simple search using range query on `name` (requires indexed text and works for prefix search)
+    const searchInput = document.getElementById('searchInput');
+    let searchTimer = null;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(doSearch, 300);
+    });
 
-async function saveUserProfile(user) {
-  const userRef = doc(db, "users", user.uid);
-  await setDoc(userRef, {
-    uid: user.uid,
-    name: user.displayName || "No Name",
-    email: user.email,
-    photo: user.photoURL || "",
-    createdAt: new Date()
-  }, { merge: true });
-}
+    async function doSearch() {
+      const searchText = searchInput.value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      resultsDiv.innerHTML = '';
+      if (searchText.length < 2) return;
+      try {
+        const q = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\\uf8ff'));
+        const snap = await getDocs(q);
+        if (snap.empty) { resultsDiv.innerHTML = '<div>No results</div>'; return; }
+        snap.forEach((d) => {
+          const data = d.data();
+          const div = document.createElement('div');
+          div.innerHTML = `<img src="${escapeHtml(data.photo||'')}" width="30" style="border-radius:50%;vertical-align:middle;margin-right:8px"> <strong>${escapeHtml(data.name||data.email||'User')}</strong> <button data-uid="${escapeHtml(data.uid||'')}">Add Friend</button>`;
+          // Optional: add friend button handler (placeholder)
+          div.querySelector('button').addEventListener('click', () => {
+            alert('Friend request feature not yet implemented. Next step will add friend-request logic.');
+          });
+          resultsDiv.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Search error', err);
+        resultsDiv.innerHTML = '<div>Error during search</div>';
+      }
+    }
 
-// Login के बाद call करें
-saveUserProfile(user);
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    // ----- UTILITIES -----
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
 
-document.getElementById("searchInput").addEventListener("input", async (e) => {
-  const searchText = e.target.value.trim();
-  if (searchText.length < 2) return; // कम से कम 2 अक्षर
-
-  const q = query(collection(db, "users"), where("name", ">=", searchText), where("name", "<=", searchText + "\uf8ff"));
-  const querySnapshot = await getDocs(q);
-
-  const resultsDiv = document.getElementById("searchResults");
-  resultsDiv.innerHTML = "";
-
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
-    resultsDiv.innerHTML += `<div>
-      <img src="${data.photo}" width="30" style="border-radius:50%"> ${data.name}
-    </div>`;
-  });
-});
-
+    // Provide guidance in console
+    console.log('Study Chat script loaded. Make sure you run this page from http://localhost (Live Server) so Google sign-in works.');
   </script>
 </body>
 </html>
