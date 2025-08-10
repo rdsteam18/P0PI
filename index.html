@@ -1,370 +1,61 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>P0PI chat</title>
-  <style>
-    body { font-family: system-ui, Segoe UI, Roboto, Arial; margin: 16px; }
-    #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; background: #fafafa; }
-    .msg { margin: 6px 0; padding: 6px; border-radius: 6px; }
-    .msg strong { color: #0b63d6; }
-    #searchResults div, #friendRequests div, #friendsList div { 
-      padding: 6px; border-bottom: 1px solid #eee; display: flex; align-items: center; justify-content: space-between; 
-    }
-    #userInfo img { vertical-align: middle; border-radius: 50%; width: 36px; margin-right: 8px; }
-    .row { display: flex; gap: 8px; align-items: center; }
-    input[type=text] { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
-    button { padding: 6px 10px; border-radius: 6px; border: 1px solid #888; background: #fff; cursor: pointer; }
-    .friendName { display: flex; align-items: center; gap: 8px; flex: 1; }
-    .friendName img { width: 30px; border-radius: 50%; }
-  </style>
+  <title>P0PI - Study Chat with Friends</title>
+  <link rel="stylesheet" href="./css/style.css" />
 </head>
 <body>
-  <h1>Study Chat with Friend Requests</h1>
-  <div id="controls" class="row">
+  <header>
+    <img src="./assets/logo.png" alt="P0PI Logo" class="logo" />
+    <h1>P0PI</h1>
     <button id="loginBtn">Login with Google</button>
     <div id="userInfo"></div>
-  </div>
+    <button id="logoutBtn" style="display:none;">Logout</button>
+  </header>
 
-  <div style="margin-top:12px;">
-    <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
-    <div id="searchResults"></div>
-  </div>
+  <main>
+    <section id="searchSection">
+      <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
+      <div id="searchResults"></div>
+    </section>
 
-  <div style="margin-top:12px;">
-    <h3>Friend Requests</h3>
-    <div id="friendRequests">No friend requests</div>
-  </div>
+    <section id="friendRequestsSection">
+      <h2>Friend Requests</h2>
+      <div id="friendRequests">No friend requests</div>
+    </section>
 
-  <div style="margin-top:12px;">
-    <h3>Friends List</h3>
-    <div id="friendsList">No friends yet</div>
-  </div>
+    <section id="friendsListSection">
+      <h2>Friends List</h2>
+      <div id="friendsList">No friends yet</div>
+    </section>
 
-  <div id="chatArea" style="display:none; margin-top:12px;">
-    <div id="messages"></div>
-    <div class="row" style="margin-top:8px;">
-      <input id="msgInput" type="text" placeholder="Type a message" style="flex:1" />
-      <button id="sendBtn">Send</button>
-    </div>
-  </div>
+    <section id="chatSection" style="display:none;">
+      <h2>Chat with <span id="chatFriendName"></span></h2>
+      <div id="messages" class="chat-messages"></div>
+      <div class="input-row">
+        <input id="msgInput" type="text" placeholder="Type a message" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </section>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-    import {
-      getFirestore, doc, setDoc, collection, addDoc, serverTimestamp,
-      query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    <section id="worldChatSection">
+      <h2>World Chat</h2>
+      <div id="worldMessages" class="chat-messages"></div>
+      <div class="input-row">
+        <input id="worldMsgInput" type="text" placeholder="Say something to the world..." />
+        <button id="worldSendBtn">Send</button>
+      </div>
+    </section>
+  </main>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyCWQWPa3OEH6ClFQ5gv9yswr8N1Yh1vstE",
-      authDomain: "study-chat-app-4a40e.firebaseapp.com",
-      projectId: "study-chat-app-4a40e",
-      storageBucket: "study-chat-app-4a40e.firebasestorage.app",
-      messagingSenderId: "458309548485",
-      appId: "1:458309548485:web:5dcccac12a7487b0d273ac",
-      measurementId: "G-HQTQLDYT0Q"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const provider = new GoogleAuthProvider();
-    const db = getFirestore(app);
-
-    let currentUser = null;
-    let unsubscribeMessages = null;
-
-    async function saveUserProfile(user) {
-      if (!user || !user.uid) return;
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        name: user.displayName || "No Name",
-        email: user.email || "",
-        photo: user.photoURL || "",
-        friends: [],           // Initialize friends list
-        friendRequests: [],    // Initialize incoming friend requests
-        createdAt: new Date().toISOString()
-      }, { merge: true });
-    }
-
-    function showUser(user) {
-      const ui = document.getElementById('userInfo');
-      if (!user) {
-        ui.innerHTML = '';
-        return;
-      }
-      ui.innerHTML = `
-        <img src="${user.photoURL || ''}" alt="photo" />
-        <strong>${user.displayName || user.email || 'User'}</strong>
-        <button id="logoutBtn">Logout</button>
-      `;
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        await signOut(auth);
-      });
-    }
-
-    // Authentication
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (err) {
-        console.error('Login error', err);
-        alert('Login failed: ' + (err.message || err));
-      }
-    });
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUser = user;
-        await saveUserProfile(user);
-        showUser(user);
-        document.getElementById('chatArea').style.display = 'block';
-        loadMessages();
-        listenToFriendRequests();
-        loadFriendsList();
-      } else {
-        currentUser = null;
-        showUser(null);
-        document.getElementById('chatArea').style.display = 'none';
-        clearFriendRequestsUI();
-        clearFriendsListUI();
-        if (unsubscribeMessages) unsubscribeMessages();
-      }
-    });
-
-    // Send chat message
-    document.getElementById('sendBtn').addEventListener('click', async () => {
-      if (!currentUser) { alert('Please login first'); return; }
-      const textEl = document.getElementById('msgInput');
-      const text = textEl.value.trim();
-      if (!text) return;
-      try {
-        await addDoc(collection(db, 'messages'), {
-          text,
-          name: currentUser.displayName || currentUser.email || 'Anonymous',
-          uid: currentUser.uid,
-          timestamp: serverTimestamp()
-        });
-        textEl.value = '';
-      } catch (err) {
-        console.error('Send message error', err);
-        alert('Failed to send message');
-      }
-    });
-
-    // Load chat messages realtime
-    function loadMessages() {
-      if (unsubscribeMessages) unsubscribeMessages();
-      const q = query(collection(db, 'messages'), orderBy('timestamp'));
-      unsubscribeMessages = onSnapshot(q, (snapshot) => {
-        const messagesDiv = document.getElementById('messages');
-        messagesDiv.innerHTML = '';
-        snapshot.forEach((snapDoc) => {
-          const msg = snapDoc.data();
-          const el = document.createElement('div');
-          el.className = 'msg';
-          const time = msg.timestamp && msg.timestamp.toDate ? msg.timestamp.toDate().toLocaleTimeString() : '';
-          el.innerHTML = `<strong>${escapeHtml(msg.name || 'Unknown')}:</strong> ${escapeHtml(msg.text || '')} <span style="float:right;font-size:0.8em;color:#666">${time}</span>`;
-          messagesDiv.appendChild(el);
-        });
-        messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      }, (err) => {
-        console.error('Messages onSnapshot error', err);
-      });
-    }
-
-    // Escape HTML helper
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[c]);
-    }
-
-    // ----- FRIEND REQUEST SYSTEM -----
-
-    // Send Friend Request
-    async function sendFriendRequest(targetUid) {
-      if (!currentUser) { alert('Please login first'); return; }
-      if (targetUid === currentUser.uid) { alert("You can't send request to yourself!"); return; }
-
-      const targetRef = doc(db, 'users', targetUid);
-      await updateDoc(targetRef, {
-        friendRequests: arrayUnion(currentUser.uid)
-      });
-      alert('Friend request sent!');
-      loadFriendsList(); // update friends and requests UI
-      listenToFriendRequests();
-    }
-
-    // Accept Friend Request
-    async function acceptFriendRequest(requesterUid) {
-      if (!currentUser) return;
-      const currentRef = doc(db, 'users', currentUser.uid);
-      const requesterRef = doc(db, 'users', requesterUid);
-
-      await updateDoc(currentRef, {
-        friends: arrayUnion(requesterUid),
-        friendRequests: arrayRemove(requesterUid)
-      });
-
-      await updateDoc(requesterRef, {
-        friends: arrayUnion(currentUser.uid)
-      });
-
-      alert('Friend request accepted!');
-      listenToFriendRequests();
-      loadFriendsList();
-    }
-
-    // Reject Friend Request
-    async function rejectFriendRequest(requesterUid) {
-      if (!currentUser) return;
-      const currentRef = doc(db, 'users', currentUser.uid);
-
-      await updateDoc(currentRef, {
-        friendRequests: arrayRemove(requesterUid)
-      });
-
-      alert('Friend request rejected!');
-      listenToFriendRequests();
-    }
-
-    // Listen to friend requests realtime
-    let unsubscribeFriendRequests = null;
-    function listenToFriendRequests() {
-      if (!currentUser) return;
-      if (unsubscribeFriendRequests) unsubscribeFriendRequests();
-
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFriendRequests = onSnapshot(userRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        const requests = data.friendRequests || [];
-        renderFriendRequests(requests);
-      });
-    }
-
-    // Render friend requests UI
-    async function renderFriendRequests(requestUids) {
-      const container = document.getElementById('friendRequests');
-      container.innerHTML = '';
-      if (requestUids.length === 0) {
-        container.innerHTML = 'No friend requests';
-        return;
-      }
-      for (const uid of requestUids) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (!userSnap.exists()) continue;
-        const userData = userSnap.data();
-        const div = document.createElement('div');
-
-        div.innerHTML = `
-          <div class="friendName">
-            <img src="${escapeHtml(userData.photo||'')}" alt="photo" />
-            <span>${escapeHtml(userData.name||userData.email||'User')}</span>
-          </div>
-          <div>
-            <button class="acceptBtn">Accept</button>
-            <button class="rejectBtn">Reject</button>
-          </div>
-        `;
-
-        div.querySelector('.acceptBtn').addEventListener('click', () => acceptFriendRequest(uid));
-        div.querySelector('.rejectBtn').addEventListener('click', () => rejectFriendRequest(uid));
-
-        container.appendChild(div);
-      }
-    }
-
-    // Load friends list UI
-    async function loadFriendsList() {
-      if (!currentUser) return;
-      const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      if (!userSnap.exists()) return;
-      const data = userSnap.data();
-      const friends = data.friends || [];
-      const container = document.getElementById('friendsList');
-      container.innerHTML = '';
-      if (friends.length === 0) {
-        container.innerHTML = 'No friends yet';
-        return;
-      }
-      for (const uid of friends) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (!userSnap.exists()) continue;
-        const userData = userSnap.data();
-        const div = document.createElement('div');
-        div.innerHTML = `
-          <div class="friendName">
-            <img src="${escapeHtml(userData.photo||'')}" alt="photo" />
-            <span>${escapeHtml(userData.name||userData.email||'User')}</span>
-          </div>
-        `;
-        container.appendChild(div);
-      }
-    }
-
-    function clearFriendRequestsUI() {
-      document.getElementById('friendRequests').innerHTML = 'No friend requests';
-    }
-    function clearFriendsListUI() {
-      document.getElementById('friendsList').innerHTML = 'No friends yet';
-    }
-
-    // Search students by name and show “Send Friend Request” button
-    document.getElementById('searchInput').addEventListener('input', async (e) => {
-      const searchText = e.target.value.trim();
-      const resultsDiv = document.getElementById('searchResults');
-      resultsDiv.innerHTML = '';
-      if (searchText.length < 2) return; // minimum 2 characters
-
-      const q = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\uf8ff'));
-      const querySnapshot = await getDocs(q);
-
-      if (!currentUser) {
-        resultsDiv.innerHTML = 'Please login to send friend requests.';
-        return;
-      }
-
-      // Get current user's friend list and requests to avoid duplicates
-      const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const currentUserData = currentUserSnap.data() || {};
-      const friends = currentUserData.friends || [];
-      const sentRequests = []; // optional: you can maintain a sentRequests list if needed
-      const incomingRequests = currentUserData.friendRequests || [];
-
-      for (const docSnap of querySnapshot.docs) {
-        const user = docSnap.data();
-        if (user.uid === currentUser.uid) continue; // skip yourself
-
-        const alreadyFriend = friends.includes(user.uid);
-        const requestSent = incomingRequests.includes(user.uid); // If they already requested you (for simplicity)
-        // You can add logic for sentRequests if you track it separately
-
-        const div = document.createElement('div');
-        div.className = 'friendName';
-        div.innerHTML = `
-          <img src="${escapeHtml(user.photo||'')}" alt="photo" />
-          <span>${escapeHtml(user.name||user.email||'User')}</span>
-          <button ${alreadyFriend || requestSent ? 'disabled' : ''} class="sendRequestBtn">${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Send Friend Request'}</button>
-        `;
-
-        if (!alreadyFriend && !requestSent) {
-          div.querySelector('.sendRequestBtn').addEventListener('click', () => sendFriendRequest(user.uid));
-        }
-
-        resultsDiv.appendChild(div);
-      }
-
-      if (resultsDiv.innerHTML === '') {
-        resultsDiv.innerHTML = 'No users found';
-      }
-    });
-  </script>
+  <script type="module" src="./js/firebase-config.js"></script>
+  <script type="module" src="./js/auth.js"></script>
+  <script type="module" src="./js/friendRequests.js"></script>
+  <script type="module" src="./js/friendsList.js"></script>
+  <script type="module" src="./js/chat.js"></script>
+  <script type="module" src="./js/worldChat.js"></script>
+  <script type="module" src="./js/utils.js"></script>
 </body>
 </html>
-
