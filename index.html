@@ -1,64 +1,68 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>P0PI - Study Chat with Friends</title>
-  <link rel="stylesheet" href="./css/style.css" />
+  <title>P0PI — Study Chat</title>
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <header>
-    <img src="./assets/logo.png" alt="P0PI Logo" class="logo" />
+    <img src="assets/logo.png" alt="P0PI" class="logo" />
     <h1>P0PI</h1>
-    <button id="loginBtn">Login with Google</button>
-    <div id="userInfo"></div>
-    <button id="logoutBtn" style="display:none;">Logout</button>
+    <div id="authArea" style="margin-left:auto;display:flex;align-items:center;gap:8px">
+      <button id="loginBtn">Login with Google</button>
+      <div id="userInfo"></div>
+    </div>
   </header>
 
   <main>
-    <section id="searchSection">
+    <section id="sidebar">
       <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
       <div id="searchResults"></div>
-    </section>
 
-    <section id="friendRequestsSection">
-      <h2>Friend Requests</h2>
+      <h3>Friend Requests</h3>
       <div id="friendRequests">No friend requests</div>
-    </section>
 
-    <section id="friendsListSection">
-      <h2>Friends List</h2>
+      <h3>Friends List</h3>
       <div id="friendsList">No friends yet</div>
     </section>
 
     <section id="chatSection" style="display:none;">
-      <h2>Chat with <span id="chatFriendName"></span></h2>
-      <div id="messages" class="chat-messages"></div>
-      <div class="input-row">
+      <div id="chatHeader" style="display:flex;align-items:center;justify-content:space-between">
+        <div id="chatFriendInfo"></div>
+        <div>
+          <button id="blockBtn" class="blockBtn">Block</button>
+          <button id="deleteChatBtn" class="blockBtn" style="background:#888">Delete Chat</button>
+        </div>
+      </div>
+
+      <div id="messages"></div>
+
+      <div class="input-row" style="margin-top:8px">
         <input id="msgInput" type="text" placeholder="Type a message" />
         <button id="sendBtn">Send</button>
       </div>
     </section>
 
-    <section id="worldChatSection">
-      <h2>World Chat</h2>
-      <div id="worldMessages" class="chat-messages"></div>
-      <div class="input-row">
+    <section id="worldSection">
+      <h3>World Chat</h3>
+      <div id="worldMessages"></div>
+      <div class="input-row" style="margin-top:8px">
         <input id="worldMsgInput" type="text" placeholder="Say something to the world..." />
         <button id="worldSendBtn">Send</button>
       </div>
     </section>
   </main>
 
-  <script type="module" src="./js/firebase-config.js"></script>
-  <script type="module" src="./js/auth.js"></script>
-  <script type="module" src="./js/friendRequests.js"></script>
-  <script type="module" src="./js/friendsList.js"></script>
-  <script type="module" src="./js/chat.js"></script>
-  <script type="module" src="./js/worldChat.js"></script>
-  <script type="module" src="./js/utils.js"></script>
-  <script type="module" src="./js/search.js"></script>
+  <!-- Modules -->
+  <script type="module" src="js/firebase-config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/friendRequests.js"></script>
+  <script type="module" src="js/friendsList.js"></script>
+  <script type="module" src="js/search.js"></script>
+  <script type="module" src="js/chat.js"></script>
+  <script type="module" src="js/worldChat.js"></script>
+  <script type="module" src="js/utils.js"></script>
 </body>
 </html>
-
-
