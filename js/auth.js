@@ -37,3 +37,51 @@ function showUser(user) {
   if (!user) {
     userInfoDiv.innerHTML = '';
     loginBtn.style.display = 'inline-block';
+    logoutBtn.style.display = 'none';
+    document.getElementById('chatSection').style.display = 'none';
+    clearChat();
+    return;
+  }
+  userInfoDiv.innerHTML = `
+    <img src="${user.photoURL || ''}" alt="photo" class="friendNameImg"/>
+    <strong>${user.displayName || user.email || 'User'}</strong>
+  `;
+  loginBtn.style.display = 'none';
+  logoutBtn.style.display = 'inline-block';
+}
+
+loginBtn.addEventListener('click', async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    alert("Login failed: " + err.message);
+    console.error(err);
+  }
+});
+
+logoutBtn.addEventListener('click', async () => {
+  try {
+    await signOut(auth);
+  } catch (err) {
+    alert("Logout failed: " + err.message);
+    console.error(err);
+  }
+});
+
+onAuthStateChanged(auth, async (user) => {
+  currentUser = user;
+  if (user) {
+    await saveUserProfile(user);
+    showUser(user);
+    renderFriendRequests();
+    loadFriendsList();
+    loadWorldMessages();
+  } else {
+    showUser(null);
+    renderFriendRequests();
+    loadFriendsList();
+    loadWorldMessages();
+  }
+});
+
+export { currentUser };
