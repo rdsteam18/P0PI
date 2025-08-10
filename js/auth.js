@@ -1,87 +1,56 @@
+// auth.js
 import { auth, provider, db } from "./firebase-config.js";
 import { signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-import { renderFriendRequests } from "./friendRequests.js";
-import { loadFriendsList } from "./friendsList.js";
-import { loadMessagesWithFriend, clearChat } from "./chat.js";
-import { loadWorldMessages } from "./worldChat.js";
+import { doc, setDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
-const loginBtn = document.getElementById('loginBtn');
-const logoutBtn = document.getElementById('logoutBtn');
-const userInfoDiv = document.getElementById('userInfo');
-
+// currentUser is module-scoped and accessible via getCurrentUser()
 let currentUser = null;
 
-export function getCurrentUser() {
-  return currentUser;
-}
+export function getCurrentUser() { return currentUser; }
 
+// Save profile (also store lowercase name for search)
 async function saveUserProfile(user) {
   if (!user || !user.uid) return;
   const userRef = doc(db, "users", user.uid);
-  const docSnap = await getDoc(userRef);
-  if (!docSnap.exists()) {
-    await setDoc(userRef, {
-      uid: user.uid,
-      name: user.displayName || "No Name",
-      email: user.email || "",
-      photo: user.photoURL || "",
-      friends: [],
-      friendRequests: [],
-      createdAt: new Date().toISOString()
-    });
-  }
+  await setDoc(userRef, {
+    uid: user.uid,
+    name: user.displayName || "No Name",
+    nameLower: (user.displayName || "No Name").toLowerCase(),
+    email: user.email || "",
+    photo: user.photoURL || "",
+    friends: [],
+    friendRequests: [],
+    blockedUsers: [],
+    createdAt: new Date().toISOString()
+  }, { merge: true });
 }
 
-function showUser(user) {
-  if (!user) {
-    userInfoDiv.innerHTML = '';
-    loginBtn.style.display = 'inline-block';
-    logoutBtn.style.display = 'none';
-    document.getElementById('chatSection').style.display = 'none';
-    clearChat();
-    return;
-  }
-  userInfoDiv.innerHTML = `
-    <img src="${user.photoURL || ''}" alt="photo" class="friendNameImg"/>
-    <strong>${user.displayName || user.email || 'User'}</strong>
-  `;
-  loginBtn.style.display = 'none';
-  logoutBtn.style.display = 'inline-block';
-}
-
+// login button
+const loginBtn = document.getElementById('loginBtn');
 loginBtn.addEventListener('click', async () => {
   try {
     await signInWithPopup(auth, provider);
   } catch (err) {
-    alert("Login failed: " + err.message);
-    console.error(err);
+    console.error('Login error', err);
+    alert('Login failed: ' + (err.message || err));
   }
 });
 
-logoutBtn.addEventListener('click', async () => {
+// logout will be handled via UI button created elsewhere calling signOut(auth)
+export async function logout() {
   try {
     await signOut(auth);
   } catch (err) {
-    alert("Logout failed: " + err.message);
-    console.error(err);
+    console.error('Logout error', err);
   }
-});
+}
 
+// when auth state changes update currentUser and dispatch event
 onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   if (user) {
     await saveUserProfile(user);
-    showUser(user);
-    renderFriendRequests();
-    loadFriendsList();
-    loadWorldMessages();
-  } else {
-    showUser(null);
-    renderFriendRequests();
-    loadFriendsList();
-    loadWorldMessages();
   }
+  // inform other modules
+  window.dispatchEvent(new CustomEvent('authChanged', { detail: user }));
 });
-
-export { currentUser };
