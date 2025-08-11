@@ -1,8 +1,8 @@
-// script.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-firestore.js";
 import { getDatabase, ref, onValue, onDisconnect, set } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.1/firebase-storage.js";
 
 // Initialize Lucide icons
 lucide.createIcons();
@@ -33,37 +33,51 @@ const friendRequests = document.getElementById('friendRequests');
 const messages = document.getElementById('messages');
 const msgInput = document.getElementById('msgInput');
 const sendBtn = document.getElementById('sendBtn');
+const mediaBtn = document.getElementById('mediaBtn');
+const mediaInput = document.getElementById('mediaInput');
 const userPhoto = document.getElementById('userPhoto');
 const userName = document.getElementById('userName');
 const chatImg = document.getElementById('chatImg');
 const chatName = document.getElementById('chatName');
 const chatStatus = document.getElementById('chatStatus');
+const typingIndicator = document.getElementById('typingIndicator');
 const ownImg = document.getElementById('ownImg');
 const homeBtn = document.getElementById('home-btn');
 const friendsBtn = document.getElementById('friends-btn');
 const chatBtn = document.getElementById('chat-btn');
 const worldChatBtn = document.getElementById('world-chat-btn');
 const settingsBtn = document.getElementById('settings-btn');
+const adminBtn = document.getElementById('admin-btn');
 const profileLink = document.getElementById('profile-link');
 const settingsLink = document.getElementById('settings-link');
 const profileModal = document.getElementById('profile-modal');
 const closeProfile = document.getElementById('close-profile');
 const profilePhoto = document.getElementById('profile-photo');
-const profileName = document.getElementById('profile-name');
+const profileNameInput = document.getElementById('profile-name-input');
+const profileBioInput = document.getElementById('profile-bio-input');
 const profileEmail = document.getElementById('profile-email');
+const saveProfileBtn = document.getElementById('save-profile-btn');
+const changePhotoBtn = document.getElementById('change-photo-btn');
+const profilePhotoInput = document.getElementById('profile-photo-input');
 const settingsModal = document.getElementById('settings-modal');
 const closeSettings = document.getElementById('close-settings');
+const adminModal = document.getElementById('admin-modal');
+const closeAdmin = document.getElementById('close-admin');
+const banUserInput = document.getElementById('ban-user-input');
+const banUserBtn = document.getElementById('ban-user-btn');
+const announcementInput = document.getElementById('announcement-input');
+const sendAnnouncementBtn = document.getElementById('send-announcement-btn');
 const chatInfoBtn = document.getElementById('chat-info-btn');
 
 // Firebase Configuration
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID",
-    databaseURL: "YOUR_DATABASE_URL"
+    apiKey: "AIzaSyCWQWPa3OEH6ClFQ5gv9yswr8N1Yh1vstE",
+    authDomain: "study-chat-app-4a40e.firebaseapp.com",
+    projectId: "study-chat-app-4a40e",
+    storageBucket: "study-chat-app-4a40e.firebasestorage.app",
+    messagingSenderId: "G-HQTQLDYT0Q",
+    appId: "1:458309548485:web:5dcccac12a7487b0d273ac",
+    databaseURL: "https://study-chat-app-4a40e-default-rtdb.firebaseio.com"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -71,6 +85,7 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 const db = getFirestore(app);
 const dbRT = getDatabase(app);
+const storage = getStorage(app);
 
 let currentUser = null;
 let unsubscribeMessages = null;
@@ -81,6 +96,8 @@ let currentChatNameText = 'World Chat';
 let currentChatStatusText = 'Public';
 let presenceListeners = [];
 let chatListeners = [];
+let typingTimeout = null;
+const adminUids = ['ec6tXaR9deTa5o8lTIXe7Se1kCo2']; // Replace with actual admin UIDs
 
 // Save User Profile
 async function saveUserProfile(user, additionalData = {}) {
@@ -91,11 +108,41 @@ async function saveUserProfile(user, additionalData = {}) {
         name: additionalData.name || user.displayName || "Anonymous",
         email: user.email || "",
         photo: user.photoURL || "https://via.placeholder.com/150",
+        bio: additionalData.bio || "",
         friends: [],
         friendRequests: [],
         blocked: [],
+        banned: false,
+        muted: false,
         createdAt: new Date().toISOString()
     }, { merge: true });
+}
+
+// Update User Profile
+async function updateUserProfile(name, photoURL, bio) {
+    if (!currentUser) return;
+    try {
+        await updateProfile(auth.currentUser, { displayName: name, photoURL });
+        const userRef = doc(db, "users", currentUser.uid);
+        await updateDoc(userRef, { name, photo: photoURL, bio });
+        showUser(currentUser);
+        showToast('Profile updated successfully');
+    } catch (err) {
+        showToast('Failed to update profile: ' + err.message);
+    }
+}
+
+// Upload Profile Photo
+async function uploadProfilePhoto(file) {
+    if (!currentUser || !file) return null;
+    try {
+        const storageReference = storageRef(storage, `profile_photos/${currentUser.uid}`);
+        await uploadBytes(storageReference, file);
+        return await getDownloadURL(storageReference);
+    } catch (err) {
+        showToast('Failed to upload photo: ' + err.message);
+        return null;
+    }
 }
 
 // Show User Info
@@ -105,8 +152,18 @@ function showUser(user) {
     userName.textContent = user.displayName || user.email || 'User';
     ownImg.src = user.photoURL || 'https://via.placeholder.com/150';
     profilePhoto.src = user.photoURL || 'https://via.placeholder.com/150';
-    profileName.textContent = user.displayName || user.email || 'User';
+    profileNameInput.value = user.displayName || user.email || 'User';
     profileEmail.textContent = user.email || '';
+    getDoc(doc(db, 'users', user.uid)).then(snap => {
+        if (snap.exists()) {
+            profileBioInput.value = snap.data().bio || '';
+        }
+    });
+    if (adminUids.includes(user.uid)) {
+        adminBtn.classList.remove('hidden');
+    } else {
+        adminBtn.classList.add('hidden');
+    }
 }
 
 // Setup Presence
@@ -235,7 +292,11 @@ sendBtn.addEventListener('click', async () => {
         showToast('Please enter a message');
         return;
     }
-
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (userSnap.exists() && (userSnap.data().banned || userSnap.data().muted)) {
+        showToast('You are banned or muted');
+        return;
+    }
     if (currentChatId !== 'global') {
         const [uid1, uid2] = currentChatId.split('_');
         const otherUid = uid1 === currentUser.uid ? uid2 : uid1;
@@ -246,18 +307,63 @@ sendBtn.addEventListener('click', async () => {
             return;
         }
     }
-
     try {
-        await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+        const messageRef = await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
             text,
             name: currentUser.displayName || currentUser.email || 'Anonymous',
             uid: currentUser.uid,
             photo: currentUser.photoURL || 'https://via.placeholder.com/150',
-            timestamp: serverTimestamp()
+            timestamp: serverTimestamp(),
+            status: 'sent',
+            reactions: {}
         });
+        await updateDoc(doc(db, 'chats', currentChatId), { lastMessage: text });
+        if (currentChatId !== 'global') {
+            const [uid1, uid2] = currentChatId.split('_');
+            const otherUid = uid1 === currentUser.uid ? uid2 : uid1;
+            await set(ref(dbRT, `typing/${currentChatId}/${currentUser.uid}`), false);
+            await updateDoc(doc(db, 'chats', currentChatId, 'messages', messageRef.id), { status: 'delivered' });
+        }
         msgInput.value = '';
     } catch (err) {
         showToast('Failed to send message: ' + err.message);
+    }
+});
+
+// Upload Media
+mediaBtn.addEventListener('click', () => {
+    mediaInput.click();
+});
+
+mediaInput.addEventListener('change', async (e) => {
+    if (!currentUser) {
+        showToast('Please log in to send media');
+        return;
+    }
+    const file = e.target.files[0];
+    if (!file) return;
+    const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
+    if (userSnap.exists() && (userSnap.data().banned || userSnap.data().muted)) {
+        showToast('You are banned or muted');
+        return;
+    }
+    try {
+        const storageReference = storageRef(storage, `media/${currentChatId}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageReference, file);
+        const url = await getDownloadURL(storageReference);
+        await addDoc(collection(db, 'chats', currentChatId, 'messages'), {
+            media: url,
+            name: currentUser.displayName || currentUser.email || 'Anonymous',
+            uid: currentUser.uid,
+            photo: currentUser.photoURL || 'https://via.placeholder.com/150',
+            timestamp: serverTimestamp(),
+            status: 'sent',
+            reactions: {}
+        });
+        await updateDoc(doc(db, 'chats', currentChatId), { lastMessage: 'Image' });
+        mediaInput.value = '';
+    } catch (err) {
+        showToast('Failed to upload media: ' + err.message);
     }
 });
 
@@ -265,37 +371,82 @@ sendBtn.addEventListener('click', async () => {
 function loadMessages() {
     if (unsubscribeMessages) unsubscribeMessages();
     const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('timestamp'));
-    unsubscribeMessages = onSnapshot(q, (snapshot) => {
+    unsubscribeMessages = onSnapshot(q, async (snapshot) => {
         messages.innerHTML = '';
-        snapshot.forEach((snapDoc) => {
+        const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
+        const isBanned = currentUserSnap.exists() && currentUserSnap.data().banned;
+        snapshot.forEach(async (snapDoc) => {
             const msg = snapDoc.data();
             const isOwn = msg.uid === currentUser.uid;
             const div = document.createElement('div');
-            div.className = 'flex items-start space-x-3 ' + (isOwn ? 'justify-end' : '');
+            div.className = `flex items-start space-x-3 ${isOwn ? 'justify-end' : ''} fade-in`;
+            div.dataset.messageId = snapDoc.id;
+            let content = '';
+            if (msg.text) {
+                content = `<p class="text-sm">${escapeHtml(msg.text)}</p>`;
+            } else if (msg.media) {
+                content = `<img src="${msg.media}" class="max-w-xs rounded-lg" alt="media">`;
+            }
+            const reactions = msg.reactions || {};
+            const reactionKeys = Object.keys(reactions);
+            const reactionHtml = reactionKeys.length > 0 ? `<div class="flex space-x-1 mt-1">${reactionKeys.map(emoji => `<span class="reaction text-sm">${emoji} ${reactions[emoji].length}</span>`).join('')}</div>` : '';
             div.innerHTML = `
                 ${isOwn ? '' : `<img class="w-8 h-8 rounded-full mt-1" src="${msg.photo || 'https://via.placeholder.com/150'}" alt="avatar">`}
                 <div class="${isOwn ? 'order-1' : ''}">
-                    <div class="${isOwn ? 'sender-bubble' : 'receiver-bubble'} px-4 py-2 max-w-xs md:max-w-md">
+                    <div class="${isOwn ? 'sender-bubble' : 'receiver-bubble'} px-4 py-2 max-w-xs md:max-w-md relative">
                         <p class="text-sm font-medium">${escapeHtml(msg.name || 'User')}</p>
-                        <p class="text-sm">${escapeHtml(msg.text || '')}</p>
+                        ${content}
+                        ${reactionHtml}
+                        <div class="reaction-menu hidden absolute top-0 right-0 mt-2 bg-white dark:bg-slate-800 rounded-md shadow-lg p-2 z-10">
+                            <button class="reaction-btn" data-emoji="👍">👍</button>
+                            <button class="reaction-btn" data-emoji="❤️">❤️</button>
+                            <button class="reaction-btn" data-emoji="😂">😂</button>
+                        </div>
                     </div>
-                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 ${isOwn ? 'text-right' : ''}">${msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString() : '...'}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 ${isOwn ? 'text-right' : ''}">
+                        ${msg.timestamp ? msg.timestamp.toDate().toLocaleTimeString() : '...'}
+                        ${isOwn && msg.status ? `<span class="ml-2">${msg.status === 'seen' ? '✓✓' : msg.status === 'delivered' ? '✓✓' : '✓'}</span>` : ''}
+                    </p>
                 </div>
                 ${isOwn ? `<img class="w-8 h-8 rounded-full mt-1 order-2" src="${currentUser.photoURL || 'https://via.placeholder.com/150'}" alt="avatar">` : ''}
             `;
-            if (isOwn) {
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'text-red-500 text-xs ml-2';
-                deleteBtn.textContent = 'Delete';
-                deleteBtn.addEventListener('click', async (e) => {
+            if (!isBanned) {
+                const bubble = div.querySelector('.sender-bubble, .receiver-bubble');
+                bubble.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    try {
-                        await deleteDoc(doc(db, 'chats', currentChatId, 'messages', snapDoc.id));
-                    } catch (err) {
-                        showToast('Failed to delete message: ' + err.message);
-                    }
+                    const reactionMenu = div.querySelector('.reaction-menu');
+                    reactionMenu.classList.toggle('hidden');
                 });
-                div.querySelector('div').appendChild(deleteBtn);
+                div.querySelectorAll('.reaction-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        const emoji = e.target.dataset.emoji;
+                        await updateDoc(doc(db, 'chats', currentChatId, 'messages', snapDoc.id), {
+                            [`reactions.${emoji}`]: arrayUnion(currentUser.uid)
+                        });
+                        div.querySelector('.reaction-menu').classList.add('hidden');
+                    });
+                });
+                if (isOwn || adminUids.includes(currentUser.uid)) {
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'text-red-500 text-xs ml-2';
+                    deleteBtn.textContent = 'Delete';
+                    deleteBtn.addEventListener('click', async (e) => {
+                        e.stopPropagation();
+                        try {
+                            await deleteDoc(doc(db, 'chats', currentChatId, 'messages', snapDoc.id));
+                            if (adminUids.includes(currentUser.uid)) {
+                                showToast('Message deleted for everyone');
+                            }
+                        } catch (err) {
+                            showToast('Failed to delete message: ' + err.message);
+                        }
+                    });
+                    div.querySelector('div').appendChild(deleteBtn);
+                }
+            }
+            if (!isOwn && currentChatId !== 'global' && msg.status !== 'seen') {
+                await updateDoc(doc(db, 'chats', currentChatId, 'messages', snapDoc.id), { status: 'seen' });
             }
             messages.appendChild(div);
         });
@@ -303,6 +454,32 @@ function loadMessages() {
     }, (err) => {
         showToast('Error loading messages: ' + err.message);
     });
+}
+
+// Typing Indicator
+msgInput.addEventListener('input', () => {
+    if (!currentUser || currentChatId === 'global') return;
+    clearTimeout(typingTimeout);
+    set(ref(dbRT, `typing/${currentChatId}/${currentUser.uid}`), true);
+    typingTimeout = setTimeout(() => {
+        set(ref(dbRT, `typing/${currentChatId}/${currentUser.uid}`), false);
+    }, 2000);
+});
+
+// Listen for Typing
+function listenForTyping() {
+    if (currentChatId === 'global') {
+        typingIndicator.classList.add('hidden');
+        return;
+    }
+    const [uid1, uid2] = currentChatId.split('_');
+    const otherUid = uid1 === currentUser.uid ? uid2 : uid1;
+    const typingRef = ref(dbRT, `typing/${currentChatId}/${otherUid}`);
+    const unsub = onValue(typingRef, (snap) => {
+        const isTyping = snap.val();
+        typingIndicator.classList.toggle('hidden', !isTyping);
+    });
+    presenceListeners.push(unsub);
 }
 
 // Escape HTML
@@ -379,6 +556,47 @@ async function toggleBlock(targetUid, isBlocked) {
     }
 }
 
+// Ban or Mute User
+async function banOrMuteUser(email, action) {
+    if (!currentUser || !adminUids.includes(currentUser.uid)) return;
+    try {
+        const q = query(collection(db, 'users'), where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+        if (querySnapshot.empty) {
+            showToast('User not found');
+            return;
+        }
+        const userDoc = querySnapshot.docs[0];
+        await updateDoc(doc(db, 'users', userDoc.id), {
+            [action]: true
+        });
+        showToast(`User ${action === 'banned' ? 'banned' : 'muted'} successfully`);
+    } catch (err) {
+        showToast(`Failed to ${action} user: ` + err.message);
+    }
+}
+
+// Send Announcement
+async function sendAnnouncement(text) {
+    if (!currentUser || !adminUids.includes(currentUser.uid)) return;
+    try {
+        await addDoc(collection(db, 'chats', 'global', 'messages'), {
+            text: `[Announcement] ${text}`,
+            name: currentUser.displayName || currentUser.email || 'Admin',
+            uid: currentUser.uid,
+            photo: currentUser.photoURL || 'https://via.placeholder.com/150',
+            timestamp: serverTimestamp(),
+            status: 'sent',
+            reactions: {}
+        });
+        await updateDoc(doc(db, 'chats', 'global'), { lastMessage: `[Announcement] ${text}` });
+        showToast('Announcement sent');
+        announcementInput.value = '';
+    } catch (err) {
+        showToast('Failed to send announcement: ' + err.message);
+    }
+}
+
 // Listen to Friend Requests
 function listenToFriendRequests() {
     if (!currentUser) return;
@@ -417,7 +635,7 @@ async function renderFriendRequests(requestUids) {
                 </div>
                 <div>
                     <p class="text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(userData.name || 'User')}</p>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Sent request</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(userData.bio || 'No bio')}</p>
                 </div>
             </div>
             <div class="flex space-x-1">
@@ -448,8 +666,10 @@ async function loadFriendsList() {
         const friends = data.friends || [];
         const blocked = data.blocked || [];
         friendsList.innerHTML = '';
-        if (friends.length === 0 && friendsList.children.length === 0) {
+        addWorldChatItem();
+        if (friends.length === 0) {
             friendsList.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">No friends yet</p>';
+            addWorldChatItem();
             return;
         }
         for (const uid of friends) {
@@ -466,14 +686,18 @@ async function loadFriendsList() {
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(userData.name || 'User')}</p>
-                    <p id="status-${uid}" class="text-xs text-slate-500 dark:text-slate-400">Offline</p>
+                    <p id="status-${uid}" class="text-xs text-slate-500 dark:text-slate-400">${userData.bio || 'No bio'}</p>
                     <p id="last-msg-${uid}" class="text-xs text-slate-500 dark:text-slate-400 last-message">No messages yet</p>
                 </div>
                 <button class="blockBtn p-1.5 rounded-full ${isBlocked ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300' : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300'} hover:bg-red-200 dark:hover:bg-red-800 transition">
-                    <i data-lucide="x"></i>
+                    <i data-lucide="${isBlocked ? 'check' : 'x'}"></i>
                 </button>
             `;
-            div.addEventListener('click', () => openPrivateChat(uid, userData));
+            div.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('blockBtn')) {
+                    openPrivateChat(uid, userData);
+                }
+            });
             div.querySelector('.blockBtn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 toggleBlock(uid, isBlocked);
@@ -487,7 +711,7 @@ async function loadFriendsList() {
                 const status = document.getElementById(`status-${uid}`);
                 if (ind && status) {
                     ind.className = 'online-indicator ' + (online ? 'bg-green-500' : 'bg-gray-400');
-                    status.textContent = online ? 'Online' : 'Offline';
+                    status.textContent = online ? userData.bio || 'Online' : userData.bio || 'Offline';
                 }
             });
             presenceListeners.push(presenceUnsub);
@@ -502,7 +726,7 @@ async function loadFriendsList() {
                         lastMsgEl.textContent = 'No messages yet';
                     } else {
                         const msg = snap.docs[0].data();
-                        lastMsgEl.textContent = (msg.uid === currentUser.uid ? 'You: ' : '') + msg.text.substring(0, 30) + (msg.text.length > 30 ? '...' : '');
+                        lastMsgEl.textContent = (msg.uid === currentUser.uid ? 'You: ' : '') + (msg.text || 'Image').substring(0, 30) + ((msg.text || 'Image').length > 30 ? '...' : '');
                     }
                 }
             }, (err) => {
@@ -524,22 +748,23 @@ function clearFriendsListUI() {
     friendsList.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">No friends yet</p>';
 }
 
-// Search Users
+// Search Users and Messages
 searchInput.addEventListener('input', async (e) => {
     const searchText = e.target.value.trim();
     searchResults.innerHTML = '';
     if (searchText.length < 2) return;
 
     try {
-        const q = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\uf8ff'));
-        const querySnapshot = await getDocs(q);
+        // Search Users
+        const userQ = query(collection(db, 'users'), where('name', '>=', searchText), where('name', '<=', searchText + '\uf8ff'));
+        const userSnapshot = await getDocs(userQ);
         if (!currentUser) return;
         const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
         const currentUserData = currentUserSnap.data() || {};
         const friends = currentUserData.friends || [];
         const incomingRequests = currentUserData.friendRequests || [];
 
-        querySnapshot.forEach((docSnap) => {
+        userSnapshot.forEach((docSnap) => {
             const user = docSnap.data();
             if (user.uid === currentUser.uid) return;
             const alreadyFriend = friends.includes(user.uid);
@@ -552,22 +777,48 @@ searchInput.addEventListener('input', async (e) => {
                 </div>
                 <div class="flex-1">
                     <p class="text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(user.name || 'User')}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(user.bio || 'No bio')}</p>
                 </div>
                 <button class="sendRequestBtn p-1.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition ${alreadyFriend || requestSent ? 'opacity-50 cursor-not-allowed' : ''}">
                     ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add Friend'}
                 </button>
             `;
             if (!alreadyFriend && !requestSent) {
-                div.querySelector('.sendRequestBtn').addEventListener('click', () => sendFriendRequest(user.uid));
+                div.querySelector('.sendRequestBtn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    sendFriendRequest(user.uid);
+                });
             }
             searchResults.appendChild(div);
         });
 
+        // Search Messages
+        const msgQ = query(collection(db, 'chats', currentChatId, 'messages'), where('text', '>=', searchText), where('text', '<=', searchText + '\uf8ff'));
+        const msgSnapshot = await getDocs(msgQ);
+        msgSnapshot.forEach((docSnap) => {
+            const msg = docSnap.data();
+            const div = document.createElement('div');
+            div.className = 'flex items-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer';
+            div.innerHTML = `
+                <div class="flex-1">
+                    <p class="text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(msg.name || 'User')}</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(msg.text.substring(0, 50))}...</p>
+                </div>
+            `;
+            div.addEventListener('click', () => {
+                const messageEl = document.querySelector(`[data-message-id="${docSnap.id}"]`);
+                if (messageEl) {
+                    messages.scrollTop = messageEl.offsetTop - 20;
+                }
+            });
+            searchResults.appendChild(div);
+        });
+
         if (searchResults.innerHTML === '') {
-            searchResults.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">No users found</p>';
+            searchResults.innerHTML = '<p class="text-sm text-slate-500 dark:text-slate-400">No results found</p>';
         }
     } catch (err) {
-        showToast('Error searching users: ' + err.message);
+        showToast('Error searching: ' + err.message);
     }
 });
 
@@ -581,10 +832,11 @@ async function openPrivateChat(friendUid, friendData) {
     updateChatHeader();
     const unsub = onValue(ref(dbRT, 'presence/' + friendUid), (snap) => {
         const online = snap.val();
-        currentChatStatusText = online ? 'Online' : 'Offline';
+        currentChatStatusText = online ? friendData.bio || 'Online' : friendData.bio || 'Offline';
         updateChatHeader();
     });
     presenceListeners.push(unsub);
+    listenForTyping();
     loadMessages();
     sidebar.classList.remove('sidebar-open');
     sidebarOverlay.classList.add('hidden');
@@ -598,8 +850,11 @@ function openWorldChat() {
     currentChatStatusText = 'Public';
     updateChatHeader();
     loadMessages();
+    typingIndicator.classList.add('hidden');
     sidebar.classList.remove('sidebar-open');
     sidebarOverlay.classList.add('hidden');
+    presenceListeners.forEach(unsub => unsub());
+    presenceListeners = [];
 }
 
 // Update Chat Header
@@ -608,7 +863,7 @@ function updateChatHeader() {
     chatName.textContent = currentChatNameText;
     chatStatus.textContent = currentChatStatusText;
     const ind = document.getElementById('chatIndicator');
-    ind.className = 'online-indicator ' + (currentChatStatusText === 'Online' ? 'bg-green-500' : 'bg-gray-400');
+    ind.className = 'online-indicator ' + (currentChatStatusText === 'Online' || currentChatStatusText === 'Public' ? 'bg-green-500' : 'bg-gray-400');
 }
 
 // Listen for Notifications
@@ -628,9 +883,9 @@ function listenForNotifications() {
                 if (!msgSnap.empty) {
                     const msg = msgSnap.docs[0].data();
                     if (msg.uid !== currentUser.uid && chatId !== currentChatId) {
-                        showToast(`New message from ${msg.name}: ${msg.text.substring(0, 30)}...`);
+                        showToast(`New message from ${msg.name}: ${msg.text || 'Image'}`);
                         if (Notification.permission === 'granted') {
-                            new Notification(`New message from ${msg.name}`, { body: msg.text });
+                            new Notification(`New message from ${msg.name}`, { body: msg.text || 'Sent an image' });
                         }
                     }
                 }
@@ -645,9 +900,9 @@ function listenForNotifications() {
         if (!msgSnap.empty) {
             const msg = msgSnap.docs[0].data();
             if (msg.uid !== currentUser.uid && currentChatId !== 'global') {
-                showToast(`New message in World Chat: ${msg.text.substring(0, 30)}...`);
+                showToast(`New message in World Chat: ${msg.text || 'Image'}`);
                 if (Notification.permission === 'granted') {
-                    new Notification('New message in World Chat', { body: msg.text });
+                    new Notification('New message in World Chat', { body: msg.text || 'Sent an image' });
                 }
             }
         }
@@ -668,7 +923,49 @@ function showToast(message) {
     }, 5000);
 }
 
-// Event Listeners
+// Event Listeners (continued from where left off)
+sendAnnouncementBtn.addEventListener('click', () => {
+    const text = announcementInput.value.trim();
+    if (!text) {
+        showToast('Please enter an announcement');
+        return;
+    }
+    sendAnnouncement(text);
+});
+
+// Chat Info Button (Shows chat details or participants)
+chatInfoBtn.addEventListener('click', async () => {
+    if (currentChatId === 'global') {
+        showToast('World Chat is a public chatroom');
+        return;
+    }
+    const [uid1, uid2] = currentChatId.split('_');
+    const otherUid = uid1 === currentUser.uid ? uid2 : uid1;
+    const userSnap = await getDoc(doc(db, 'users', otherUid));
+    if (userSnap.exists()) {
+        const userData = userSnap.data();
+        showToast(`${userData.name || 'User'}\n${userData.bio || 'No bio'}\n${userData.email || 'No email'}`);
+    } else {
+        showToast('User information not available');
+    }
+});
+
+// Handle Enter Key for Sending Messages
+msgInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendBtn.click();
+    }
+});
+
+// Initialize Dark Mode from Local Storage
+if (localStorage.getItem('darkMode') === 'true') {
+    document.documentElement.classList.add('dark');
+} else {
+    document.documentElement.classList.remove('dark');
+}
+
+// Event Listeners (previously defined)
 switchToSignup.addEventListener('click', () => {
     authScreen.classList.add('hidden');
     signupScreen.classList.remove('hidden');
@@ -682,6 +979,9 @@ switchToLogin.addEventListener('click', () => {
 darkModeToggle.addEventListener('click', () => {
     document.documentElement.classList.toggle('dark');
     localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+    const icon = darkModeToggle.querySelector('i');
+    icon.dataset.lucide = document.documentElement.classList.contains('dark') ? 'moon' : 'sun';
+    lucide.createIcons();
 });
 
 userMenuButton.addEventListener('click', () => {
@@ -734,6 +1034,10 @@ settingsBtn.addEventListener('click', () => {
     settingsModal.classList.remove('hidden');
 });
 
+adminBtn.addEventListener('click', () => {
+    adminModal.classList.remove('hidden');
+});
+
 profileLink.addEventListener('click', (e) => {
     e.preventDefault();
     profileModal.classList.remove('hidden');
@@ -752,43 +1056,48 @@ closeSettings.addEventListener('click', () => {
     settingsModal.classList.add('hidden');
 });
 
-chatInfoBtn.addEventListener('click', () => {
-    if (currentChatId === 'global') {
-        showToast('This is the World Chat, open to all users');
-    } else {
-        const [uid1, uid2] = currentChatId.split('_');
-        const otherUid = uid1 === currentUser.uid ? uid2 : uid1;
-        getDoc(doc(db, 'users', otherUid)).then((snap) => {
-            if (snap.exists()) {
-                const data = snap.data();
-                profilePhoto.src = data.photo || 'https://via.placeholder.com/150';
-                profileName.textContent = data.name || 'User';
-                profileEmail.textContent = data.email || '';
-                profileModal.classList.remove('hidden');
-            }
-        }).catch((err) => {
-            showToast('Error loading profile: ' + err.message);
-        });
+closeAdmin.addEventListener('click', () => {
+    adminModal.classList.add('hidden');
+});
+
+changePhotoBtn.addEventListener('click', () => {
+    profilePhotoInput.click();
+});
+
+profilePhotoInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const url = await uploadProfilePhoto(file);
+        if (url) {
+            profilePhoto.src = url;
+        }
     }
 });
 
-if (localStorage.getItem('darkMode') === 'true') {
-    document.documentElement.classList.add('dark');
-} else if (localStorage.getItem('darkMode') === 'false') {
-    document.documentElement.classList.remove('dark');
-} else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    document.documentElement.classList.add('dark');
-    localStorage.setItem('darkMode', 'true');
-}
-
-messages.addEventListener('DOMSubtreeModified', () => {
-    messages.scrollTop = messages.scrollHeight;
+saveProfileBtn.addEventListener('click', () => {
+    const name = profileNameInput.value.trim();
+    const bio = profileBioInput.value.trim();
+    if (!name) {
+        showToast('Name is required');
+        return;
+    }
+    updateUserProfile(name, profilePhoto.src, bio);
+    profileModal.classList.add('hidden');
 });
 
+banUserBtn.addEventListener('click', () => {
+    const email = banUserInput.value.trim();
+    if (!email) {
+        showToast('Please enter an email');
+        return;
+    }
+    banOrMuteUser(email, 'banned');
+    banUserInput.value = '';
+});
+
+// Service Worker Registration for Offline Support
 if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js').catch((err) => {
-            console.error('Service Worker registration failed:', err);
-        });
-    });
+    navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('Service Worker registered'))
+        .catch(err => console.error('Service Worker registration failed:', err));
 }
