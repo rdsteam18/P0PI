@@ -138,14 +138,14 @@
                 </div>
                 
                 <nav class="hidden md:flex items-center space-x-1">
-                    <button class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400">
+                    <button id="home-btn" class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-indigo-600 dark:text-indigo-400">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1 inline">
                             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
                             <polyline points="9 22 9 12 15 12 15 22"></polyline>
                         </svg>
                         Home
                     </button>
-                    <button class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <button id="friends-btn" class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1 inline">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                             <circle cx="9" cy="7" r="4"></circle>
@@ -154,13 +154,13 @@
                         </svg>
                         Friends
                     </button>
-                    <button class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <button id="chat-btn" class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1 inline">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                         </svg>
                         Chat
                     </button>
-                    <button class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <button id="settings-btn" class="px-4 py-2 text-sm font-medium rounded-lg transition hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mr-1 inline">
                             <circle cx="12" cy="12" r="3"></circle>
                             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -194,8 +194,8 @@
                         </button>
                         
                         <div id="user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg py-1 z-50 border border-slate-200 dark:border-slate-700">
-                            <a href="#" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Your Profile</a>
-                            <a href="#" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Settings</a>
+                            <a href="#" id="profile-link" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Your Profile</a>
+                            <a href="#" id="settings-link" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Settings</a>
                             <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition">Sign out</a>
                         </div>
                     </div>
@@ -225,47 +225,6 @@
                     </div>
                     
                     <div class="p-4 border-t border-slate-200 dark:border-slate-700">
-                        <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Groups</h3>
-                        <div class="space-y-1">
-                            <!-- Group Item -->
-                            <div class="flex items-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
-                                <div class="relative mr-3">
-                                    <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-indigo-600 dark:text-indigo-300">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="9" cy="7" r="4"></circle>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-slate-800 dark:text-slate-200">Design Team</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">5 members</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Group Item -->
-                            <div class="flex items-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer">
-                                <div class="relative mr-3">
-                                    <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-purple-600 dark:text-purple-300">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                            <circle cx="9" cy="7" r="4"></circle>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                        </svg>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-medium text-slate-800 dark:text-slate-200">Developers</p>
-                                    <p class="text-xs text-slate-500 dark:text-slate-400">12 members</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="p-4 border-t border-slate-200 dark:border-slate-700">
                         <h3 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Friend Requests</h3>
                         <div id="friendRequests" class="space-y-2"></div>
                     </div>
@@ -276,34 +235,40 @@
             <div id="sidebar-overlay" class="sidebar-overlay hidden"></div>
             
             <!-- Main Content Area -->
-            <main class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
+            <main id="main-section" class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden">
                 <!-- Chat Header -->
-                <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center">
+                <div class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 p-4 flex items-center justify-between">
                     <div class="flex items-center">
                         <div class="relative mr-3">
-                            <img id="chatImg" class="w-10 h-10 rounded-full" src="https://p0pi.netlify.app/assets/logo.png" alt="Friend avatar">
+                            <img id="chatImg" class="w-10 h-10 rounded-full" src="https://randomuser.me/api/portraits/women/44.jpg" alt="Friend avatar">
                             <span class="online-indicator"></span>
                         </div>
                         <div>
-                            <h2 id="chatName" class="text-lg font-semibold text-slate-800 dark:text-slate-200">World Chat</h2>
+                            <h2 id="chatName" class="text-lg font-semibold text-slate-800 dark:text-slate-200">Sarah Johnson</h2>
                             <p id="chatStatus" class="text-xs text-slate-500 dark:text-slate-400">Online</p>
                         </div>
                     </div>
-                    <div class="ml-auto flex space-x-2">
-                        <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300">
-                                <circle cx="12" cy="12" r="1"></circle>
-                                <circle cx="19" cy="12" r="1"></circle>
-                                <circle cx="5" cy="12" r="1"></circle>
-                            </svg>
-                        </button>
-                        <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300">
-                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                                <line x1="12" y1="9" x2="12" y2="13"></line>
-                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                            </svg>
-                        </button>
+                    <div class="flex items-center space-x-3">
+                        <div class="relative">
+                            <img id="ownImg" class="w-10 h-10 rounded-full" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt="Own avatar">
+                            <span class="online-indicator bg-green-500"></span>
+                        </div>
+                        <div class="ml-auto flex space-x-2">
+                            <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300">
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="19" cy="12" r="1"></circle>
+                                    <circle cx="5" cy="12" r="1"></circle>
+                                </svg>
+                            </button>
+                            <button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-slate-600 dark:text-slate-300">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                    <line x1="12" y1="9" x2="12" y2="13"></line>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -357,6 +322,26 @@
                     </div>
                 </div>
             </main>
+
+            <!-- Profile Modal -->
+            <div id="profile-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-8">
+                    <h2 class="text-2xl font-bold text-center text-slate-800 dark:text-white mb-4">Your Profile</h2>
+                    <img id="profile-photo" class="w-32 h-32 rounded-full mx-auto mb-4" src="" alt="Profile Photo">
+                    <p id="profile-name" class="text-center text-lg font-medium mb-2"></p>
+                    <p id="profile-email" class="text-center text-slate-600 dark:text-slate-300 mb-4"></p>
+                    <button id="close-profile" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg">Close</button>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settings-modal" class="hidden fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+                <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-md p-8">
+                    <h2 class="text-2xl font-bold text-center text-slate-800 dark:text-white mb-4">Settings</h2>
+                    <p class="text-center text-slate-600 dark:text-slate-300 mb-4">Settings options coming soon!</p>
+                    <button id="close-settings" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-lg">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -370,9 +355,9 @@
             </div>
             <div class="flex-1">
                 <h3 class="font-medium text-slate-800 dark:text-slate-200">New message</h3>
-                <p class="text-sm text-slate-600 dark:text-slate-400 mt-1">World Chat: Hey, how are you doing?</p>
+                <p id="toast-message" class="text-sm text-slate-600 dark:text-slate-400 mt-1"></p>
             </div>
-            <button class="ml-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
+            <button id="close-toast" class="ml-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
