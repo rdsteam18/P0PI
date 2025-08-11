@@ -1,6 +1,6 @@
 /* style.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        
+
 :root {
     --primary: #6366f1;
     --primary-dark: #4f46e5;
@@ -8,64 +8,64 @@
     --dark: #1e293b;
     --light: #f8fafc;
 }
-        
+
 body {
     font-family: 'Inter', sans-serif;
     transition: background-color 0.3s ease;
 }
-        
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
-        
+
 ::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
 }
-        
+
 ::-webkit-scrollbar-thumb {
     background: var(--primary);
     border-radius: 3px;
 }
-        
+
 /* Animation classes */
 .fade-in {
     animation: fadeIn 0.3s ease-in-out;
 }
-        
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
-        
+
 .slide-in {
     animation: slideIn 0.3s ease-out;
 }
-        
+
 @keyframes slideIn {
     from { transform: translateX(-100%); }
     to { transform: translateX(0); }
 }
-        
+
 /* Chat bubbles */
 .sender-bubble {
     background-color: var(--primary);
     color: white;
     border-radius: 18px 18px 0 18px;
 }
-        
+
 .receiver-bubble {
     background-color: #e2e8f0;
     color: var(--dark);
     border-radius: 18px 18px 18px 0;
 }
-        
+
 .dark .receiver-bubble {
     background-color: #334155;
     color: var(--light);
 }
-        
+
 /* Online status indicator */
 .online-indicator {
     position: absolute;
@@ -77,11 +77,11 @@ body {
     border-radius: 50%;
     border: 2px solid white;
 }
-        
+
 .dark .online-indicator {
     border-color: var(--dark);
 }
-        
+
 /* Responsive sidebar */
 @media (max-width: 768px) {
     .sidebar {
@@ -90,11 +90,11 @@ body {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
     }
-            
+
     .sidebar-open {
         transform: translateX(0);
     }
-            
+
     .sidebar-overlay {
         position: fixed;
         top: 0;
@@ -105,8 +105,15 @@ body {
         z-index: 30;
         display: none;
     }
-            
+
     .sidebar-open + .sidebar-overlay {
         display: block;
     }
+}
+
+.last-message {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
 }
