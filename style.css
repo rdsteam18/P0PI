@@ -1,0 +1,190 @@
+/* style.css */
+body {
+  font-family: system-ui, Segoe UI, Roboto, Arial;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  background: #0084ff;
+  color: white;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  z-index: 10;
+}
+
+.logo {
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+}
+
+.app-container {
+  display: flex;
+  height: calc(100vh - 60px);
+  margin-top: 60px;
+}
+
+.sidebar {
+  width: 300px;
+  border-right: 1px solid #ccc;
+  padding: 10px;
+  overflow-y: auto;
+  background: white;
+}
+
+.chat-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  background: #e5ddd5;
+}
+
+.msg {
+  margin: 6px 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.msg.own {
+  background: #dcf8c6;
+  align-self: flex-end;
+}
+
+.msg.other {
+  background: white;
+  align-self: flex-start;
+}
+
+.msg strong {
+  color: #0b63d6;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input-row {
+  padding: 10px;
+  background: white;
+  border-top: 1px solid #ccc;
+}
+
+input[type=text] {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  flex: 1;
+}
+
+button {
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #888;
+  background: #fff;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #f0f0f0;
+}
+
+#userInfo img {
+  vertical-align: middle;
+  border-radius: 50%;
+  width: 36px;
+  margin-right: 8px;
+}
+
+.friendName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.friendName img {
+  width: 30px;
+  border-radius: 50%;
+}
+
+#searchResults div,
+#friendRequests div,
+#friendsList div {
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profile-section {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.search-section,
+.friend-requests-section,
+.friends-list-section,
+.world-chat-section {
+  margin-top: 12px;
+}
+
+#chatTitle {
+  padding: 10px;
+  background: #0084ff;
+  color: white;
+  margin: 0;
+  text-align: center;
+}
+
+/* Responsive for mobile */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid #ccc;
+    display: none; /* Hide sidebar by default on mobile, toggle with button */
+  }
+
+  .chat-area {
+    height: calc(100vh - 60px);
+  }
+
+  .app-header {
+    justify-content: space-between;
+  }
+
+  .app-header::after {
+    content: 'Menu';
+    cursor: pointer;
+    padding: 10px;
+    color: white;
+  }
+
+  /* Add JS to toggle sidebar on mobile */
+}
