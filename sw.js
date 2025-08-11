@@ -1,3 +1,4 @@
+// sw.js
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open('p0pi-cache').then((cache) => {
