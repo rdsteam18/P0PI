@@ -1,4 +1,3 @@
-/* style.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
@@ -73,7 +72,6 @@ body {
     right: 0;
     width: 12px;
     height: 12px;
-    background-color: #10b981;
     border-radius: 50%;
     border: 2px solid white;
 }
@@ -113,4 +111,14 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 150px;
+}
+
+/* Message reactions */
+.reaction {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.reaction:hover {
+    transform: scale(1.2);
 }
