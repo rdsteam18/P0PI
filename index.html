@@ -1,0 +1,60 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>P0PI</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <img src="https://p0pi.netlify.app/assets/logo.png" alt="P0PI Logo" class="logo">
+    <h1>P0PI - Study Chat</h1>
+  </header>
+
+  <div id="app-container" class="app-container">
+    <aside id="sidebar" class="sidebar">
+      <div id="controls" class="row">
+        <button id="loginBtn">Login with Google</button>
+        <div id="userInfo"></div>
+      </div>
+
+      <div class="profile-section" id="profileSection" style="display: none;">
+        <h3>Your Profile</h3>
+        <div id="profileDetails"></div>
+      </div>
+
+      <div class="search-section">
+        <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" />
+        <div id="searchResults"></div>
+      </div>
+
+      <div class="friend-requests-section">
+        <h3>Friend Requests</h3>
+        <div id="friendRequests">No friend requests</div>
+      </div>
+
+      <div class="friends-list-section">
+        <h3>Friends List</h3>
+        <div id="friendsList">No friends yet</div>
+      </div>
+
+      <div class="world-chat-section">
+        <button id="worldChatBtn">World Chat</button>
+      </div>
+    </aside>
+
+    <main id="chatArea" class="chat-area" style="display:none;">
+      <h2 id="chatTitle">World Chat</h2>
+      <div id="messages" class="messages"></div>
+      <div class="row input-row">
+        <input id="msgInput" type="text" placeholder="Type a message" />
+        <button id="sendBtn">Send</button>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="script.js"></script>
+</body>
+</html>
