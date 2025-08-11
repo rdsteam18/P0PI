@@ -19,6 +19,8 @@ const sidebarToggle = document.getElementById('sidebar-toggle');
 const sidebar = document.getElementById('sidebar');
 const sidebarOverlay = document.getElementById('sidebar-overlay');
 const notificationToast = document.getElementById('notification-toast');
+const toastMessage = document.getElementById('toast-message');
+const closeToast = document.getElementById('close-toast');
 const searchInput = document.getElementById('searchInput');
 const searchResults = document.getElementById('searchResults');
 const friendsList = document.getElementById('friendsList');
@@ -31,13 +33,27 @@ const userName = document.getElementById('userName');
 const chatImg = document.getElementById('chatImg');
 const chatName = document.getElementById('chatName');
 const chatStatus = document.getElementById('chatStatus');
+const ownImg = document.getElementById('ownImg');
+const homeBtn = document.getElementById('home-btn');
+const friendsBtn = document.getElementById('friends-btn');
+const chatBtn = document.getElementById('chat-btn');
+const settingsBtn = document.getElementById('settings-btn');
+const profileLink = document.getElementById('profile-link');
+const settingsLink = document.getElementById('settings-link');
+const profileModal = document.getElementById('profile-modal');
+const closeProfile = document.getElementById('close-profile');
+const profilePhoto = document.getElementById('profile-photo');
+const profileName = document.getElementById('profile-name');
+const profileEmail = document.getElementById('profile-email');
+const settingsModal = document.getElementById('settings-modal');
+const closeSettings = document.getElementById('close-settings');
 
 // Firebase imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
   getFirestore, doc, setDoc, collection, addDoc, serverTimestamp,
-  query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc, deleteDoc
+  query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc, deleteDoc, limit
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 import { getDatabase, ref, onValue, onDisconnect, set } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-database.js";
 
@@ -62,10 +78,11 @@ let currentUser = null;
 let unsubscribeMessages = null;
 let unsubscribeFriendRequests = null;
 let currentChatId = 'global';
-let currentChatTitle = 'World Chat';
-let currentChatStatus = 'Public';
-let currentChatPhoto = 'https://p0pi.netlify.app/assets/logo.png'; // Default for world
+let currentChatPhoto = '';
+let currentChatNameText = 'World Chat';
+let currentChatStatusText = 'Public';
 let presenceListeners = [];
+let chatListeners = [];
 
 async function saveUserProfile(user, additionalData = {}) {
   if (!user || !user.uid) return;
@@ -75,9 +92,9 @@ async function saveUserProfile(user, additionalData = {}) {
     name: additionalData.name || user.displayName || "No Name",
     email: user.email || "",
     photo: user.photoURL || "",
-    friends: [],           
-    friendRequests: [],    
-    blocked: [], 
+    friends: [],
+    friendRequests: [],
+    blocked: [],
     createdAt: new Date().toISOString()
   }, { merge: true });
 }
@@ -86,6 +103,7 @@ function showUser(user) {
   if (!user) return;
   userPhoto.src = user.photoURL || 'https://via.placeholder.com/150';
   userName.textContent = user.displayName || user.email || 'User';
+  ownImg.src = user.photoURL || 'https://via.placeholder.com/150';
 }
 
 function setupPresence() {
@@ -104,8 +122,7 @@ loginBtn.addEventListener('click', async () => {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   try {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    // Handled in onAuthStateChanged
+    await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
     alert('Login failed: ' + err.message);
   }
@@ -123,7 +140,6 @@ signupBtn.addEventListener('click', async () => {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await saveUserProfile(cred.user, {name});
-    // Handled in onAuthStateChanged
   } catch (err) {
     alert('Signup failed: ' + err.message);
   }
@@ -154,6 +170,7 @@ onAuthStateChanged(auth, async (user) => {
     listenToFriendRequests();
     loadFriendsList();
     addWorldChatItem();
+    listenForNotifications();
   } else {
     currentUser = null;
     appContainer.classList.add('hidden');
@@ -164,10 +181,12 @@ onAuthStateChanged(auth, async (user) => {
     if (unsubscribeFriendRequests) unsubscribeFriendRequests();
     presenceListeners.forEach(unsub => unsub());
     presenceListeners = [];
+    chatListeners.forEach(unsub => unsub());
+    chatListeners = [];
   }
 });
 
-// Add World Chat item to friends list
+// Add World Chat item to sidebar
 function addWorldChatItem() {
   const worldItem = document.createElement('div');
   worldItem.className = 'flex items-center p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer';
@@ -181,9 +200,9 @@ function addWorldChatItem() {
         </svg>
       </div>
     </div>
-    <div>
+    <div class="flex-1">
       <p class="text-sm font-medium text-slate-800 dark:text-slate-200">World Chat</p>
-      <p class="text-xs text-slate-500 dark:text-slate-400">Public chatroom</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400 last-message">Public chatroom</p>
     </div>
   `;
   worldItem.addEventListener('click', () => openWorldChat());
@@ -268,8 +287,7 @@ async function sendFriendRequest(targetUid) {
   await updateDoc(targetRef, {
     friendRequests: arrayUnion(currentUser.uid)
   });
-  loadFriendsList();
-  listenToFriendRequests();
+  showToast('Friend request sent');
 }
 
 // Accept Friend Request
@@ -289,8 +307,9 @@ async function acceptFriendRequest(requesterUid) {
 
   const chatId = [currentUser.uid, requesterUid].sort().join('_');
   const chatRef = doc(db, 'chats', chatId);
-  await setDoc(chatRef, { participants: [currentUser.uid, requesterUid] }, { merge: true });
+  await setDoc(chatRef, { participants: [currentUser.uid, requesterUid], lastMessage: '' }, { merge: true });
 
+  showToast('Friend request accepted');
   listenToFriendRequests();
   loadFriendsList();
 }
@@ -302,10 +321,11 @@ async function rejectFriendRequest(requesterUid) {
   await updateDoc(currentRef, {
     friendRequests: arrayRemove(requesterUid)
   });
+  showToast('Friend request rejected');
   listenToFriendRequests();
 }
 
-// Block/Unblock User
+// Toggle Block
 async function toggleBlock(targetUid, isBlocked) {
   if (!currentUser) return;
   const currentRef = doc(db, 'users', currentUser.uid);
@@ -377,7 +397,7 @@ async function renderFriendRequests(requestUids) {
   }
 }
 
-// Load friends list
+// Load friends list with last message
 async function loadFriendsList() {
   if (!currentUser) return;
   const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
@@ -404,6 +424,7 @@ async function loadFriendsList() {
       <div class="flex-1">
         <p class="text-sm font-medium text-slate-800 dark:text-slate-200">${escapeHtml(userData.name || 'User')}</p>
         <p id="status-${uid}" class="text-xs text-slate-500 dark:text-slate-400">Offline</p>
+        <p id="last-msg-${uid}" class="text-xs text-slate-500 dark:text-slate-400 last-message">No messages yet</p>
       </div>
       <button class="blockBtn p-1.5 rounded-full ${isBlocked ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-300' : 'bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300'} hover:bg-red-200 dark:hover:bg-red-800 transition">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -416,8 +437,8 @@ async function loadFriendsList() {
     div.querySelector('.blockBtn').addEventListener('click', () => toggleBlock(uid, isBlocked));
     friendsList.appendChild(div);
 
-    // Listen to presence
-    const unsub = onValue(ref(dbRT, 'presence/' + uid), (snap) => {
+    // Presence
+    const presenceUnsub = onValue(ref(dbRT, 'presence/' + uid), (snap) => {
       const online = snap.val();
       const ind = document.getElementById(`online-${uid}`);
       const status = document.getElementById(`status-${uid}`);
@@ -426,7 +447,23 @@ async function loadFriendsList() {
         status.textContent = online ? 'Online' : 'Offline';
       }
     });
-    presenceListeners.push(unsub);
+    presenceListeners.push(presenceUnsub);
+
+    // Last message
+    const chatId = [currentUser.uid, uid].sort().join('_');
+    const lastMsgQ = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'desc'), limit(1));
+    const lastMsgUnsub = onSnapshot(lastMsgQ, (snap) => {
+      const lastMsgEl = document.getElementById(`last-msg-${uid}`);
+      if (lastMsgEl) {
+        if (snap.empty) {
+          lastMsgEl.textContent = 'No messages yet';
+        } else {
+          const msg = snap.docs[0].data();
+          lastMsgEl.textContent = (msg.uid === currentUser.uid ? 'You: ' : '') + msg.text.substring(0, 30) + (msg.text.length > 30 ? '...' : '');
+        }
+      }
+    });
+    chatListeners.push(lastMsgUnsub);
   }
 }
 
@@ -490,15 +527,15 @@ searchInput.addEventListener('input', async (e) => {
 async function openPrivateChat(friendUid, friendData) {
   const chatId = [currentUser.uid, friendUid].sort().join('_');
   currentChatId = chatId;
-  chatName.textContent = friendData.name || 'User';
-  chatStatus.textContent = 'Offline'; // Initial
-  chatImg.src = friendData.photo || 'https://via.placeholder.com/40';
-  // Listen to presence for header
+  currentChatPhoto = friendData.photo || 'https://via.placeholder.com/40';
+  currentChatNameText = friendData.name || 'User';
+  currentChatStatusText = 'Offline'; // Initial
+  updateChatHeader();
+  // Presence for header
   const unsub = onValue(ref(dbRT, 'presence/' + friendUid), (snap) => {
     const online = snap.val();
-    chatStatus.textContent = online ? 'Online' : 'Offline';
-    const ind = chatImg.parentElement.querySelector('.online-indicator');
-    ind.className = 'online-indicator ' + (online ? 'bg-green-500' : 'bg-gray-400');
+    currentChatStatusText = online ? 'Online' : 'Offline';
+    updateChatHeader();
   });
   presenceListeners.push(unsub);
   loadMessages();
@@ -506,18 +543,111 @@ async function openPrivateChat(friendUid, friendData) {
 
 function openWorldChat() {
   currentChatId = 'global';
-  chatName.textContent = 'World Chat';
-  chatStatus.textContent = 'Public';
-  chatImg.src = 'https://p0pi.netlify.app/assets/logo.png';
-  chatImg.parentElement.querySelector('.online-indicator').className = 'online-indicator bg-green-500';
+  currentChatPhoto = 'https://p0pi.netlify.app/assets/logo.png';
+  currentChatNameText = 'World Chat';
+  currentChatStatusText = 'Public';
+  updateChatHeader();
   loadMessages();
 }
 
-// Initialize global chat
-(async () => {
-  const globalChatRef = doc(db, 'chats', 'global');
-  await setDoc(globalChatRef, { type: 'global' }, { merge: true });
-})();
+function updateChatHeader() {
+  chatImg.src = currentChatPhoto;
+  chatName.textContent = currentChatNameText;
+  chatStatus.textContent = currentChatStatusText;
+  const ind = chatImg.parentElement.querySelector('.online-indicator');
+  ind.className = 'online-indicator ' + (currentChatStatusText === 'Online' ? 'bg-green-500' : 'bg-gray-400');
+}
+
+// Listen for notifications
+function listenForNotifications() {
+  // Request permission for notifications
+  if (Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+
+  // Listen to all chats for new messages
+  const userRef = doc(db, 'users', currentUser.uid);
+  onSnapshot(userRef, async (snap) => {
+    const data = snap.data();
+    const friends = data.friends || [];
+    friends.forEach((friendUid) => {
+      const chatId = [currentUser.uid, friendUid].sort().join('_');
+      const q = query(collection(db, 'chats', chatId, 'messages'), orderBy('timestamp', 'desc'), limit(1));
+      const unsub = onSnapshot(q, (msgSnap) => {
+        if (!msgSnap.empty) {
+          const msg = msgSnap.docs[0].data();
+          if (msg.uid !== currentUser.uid && chatId !== currentChatId) {
+            showToast(`New message from ${msg.name}: ${msg.text.substring(0, 30)}...`);
+            if (Notification.permission === 'granted') {
+              new Notification(`New message from ${msg.name}`, { body: msg.text });
+            }
+          }
+        }
+      });
+      chatListeners.push(unsub);
+    });
+  });
+
+  // Global chat notifications
+  const globalQ = query(collection(db, 'chats', 'global', 'messages'), orderBy('timestamp', 'desc'), limit(1));
+  const globalUnsub = onSnapshot(globalQ, (msgSnap) => {
+    if (!msgSnap.empty) {
+      const msg = msgSnap.docs[0].data();
+      if (msg.uid !== currentUser.uid && currentChatId !== 'global') {
+        showToast(`New message in World Chat: ${msg.text.substring(0, 30)}...`);
+        if (Notification.permission === 'granted') {
+          new Notification('New message in World Chat', { body: msg.text });
+        }
+      }
+    }
+  });
+  chatListeners.push(globalUnsub);
+}
+
+// Show toast
+function showToast(message) {
+  toastMessage.textContent = message;
+  notificationToast.classList.remove('hidden', 'translate-y-10', 'opacity-0');
+  notificationToast.classList.add('translate-y-0', 'opacity-100');
+  setTimeout(() => {
+    notificationToast.classList.add('translate-y-10', 'opacity-0');
+    setTimeout(() => notificationToast.classList.add('hidden'), 300);
+  }, 5000);
+}
+
+closeToast.addEventListener('click', () => {
+  notificationToast.classList.add('translate-y-10', 'opacity-0');
+  setTimeout(() => notificationToast.classList.add('hidden'), 300);
+});
+
+// Nav buttons
+homeBtn.addEventListener('click', openWorldChat);
+friendsBtn.addEventListener('click', () => {
+  sidebar.classList.add('sidebar-open');
+  sidebarOverlay.classList.remove('hidden');
+});
+chatBtn.addEventListener('click', () => {
+  // Already in chat, perhaps refresh or something
+});
+settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+
+// Profile and Settings
+profileLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  profilePhoto.src = currentUser.photoURL || 'https://via.placeholder.com/150';
+  profileName.textContent = currentUser.displayName || 'User';
+  profileEmail.textContent = currentUser.email || '';
+  profileModal.classList.remove('hidden');
+});
+
+closeProfile.addEventListener('click', () => profileModal.classList.add('hidden'));
+
+settingsLink.addEventListener('click', (e) => {
+  e.preventDefault();
+  settingsModal.classList.remove('hidden');
+});
+
+closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
 // Other event listeners...
 switchToSignup.addEventListener('click', () => {
