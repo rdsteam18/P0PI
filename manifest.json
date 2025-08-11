@@ -1,0 +1,16 @@
+// manifest.json
+{
+  "name": "P0PI",
+  "short_name": "P0PI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#6366f1",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "https://p0pi.netlify.app/assets/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
