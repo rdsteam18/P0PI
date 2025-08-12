@@ -1,12 +1,12 @@
 // friends-request.js
-import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
-import { auth } from "./auth.js";
+import { getFirestore, doc, updateDoc, arrayUnion, arrayRemove, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { loadFriendsList } from "./friends-list.js";
 
 const db = getFirestore();
 
 let unsubscribeFriendRequests = null;
 
-function listenToFriendRequests(currentUser) {
+export function listenToFriendRequests(currentUser) {
   if (!currentUser) return;
   if (unsubscribeFriendRequests) unsubscribeFriendRequests();
 
@@ -15,13 +15,13 @@ function listenToFriendRequests(currentUser) {
     if (!docSnap.exists()) return;
     const data = docSnap.data();
     const requests = data.friendRequests || [];
-    renderFriendRequests(requests);
+    renderFriendRequests(requests, currentUser);
   }, (err) => {
     console.error('Friend requests onSnapshot error', err);
   });
 }
 
-async function renderFriendRequests(requestUids) {
+async function renderFriendRequests(requestUids, currentUser) {
   const container = document.getElementById('friendRequests');
   container.innerHTML = '';
   if (requestUids.length === 0) {
@@ -45,15 +45,15 @@ async function renderFriendRequests(requestUids) {
       </div>
     `;
 
-    div.querySelector('.acceptBtn').addEventListener('click', () => acceptFriendRequest(uid));
-    div.querySelector('.rejectBtn').addEventListener('click', () => rejectFriendRequest(uid));
+    div.querySelector('.acceptBtn').addEventListener('click', () => acceptFriendRequest(uid, currentUser));
+    div.querySelector('.rejectBtn').addEventListener('click', () => rejectFriendRequest(uid, currentUser));
 
     container.appendChild(div);
   }
 }
 
-async function acceptFriendRequest(requesterUid) {
-  const currentRef = doc(db, 'users', auth.currentUser.uid);
+async function acceptFriendRequest(requesterUid, currentUser) {
+  const currentRef = doc(db, 'users', currentUser.uid);
   const requesterRef = doc(db, 'users', requesterUid);
 
   await updateDoc(currentRef, {
@@ -62,14 +62,15 @@ async function acceptFriendRequest(requesterUid) {
   });
 
   await updateDoc(requesterRef, {
-    friends: arrayUnion(auth.currentUser.uid)
+    friends: arrayUnion(currentUser.uid)
   });
 
   alert('Friend request accepted!');
+  loadFriendsList(currentUser);
 }
 
-async function rejectFriendRequest(requesterUid) {
-  const currentRef = doc(db, 'users', auth.currentUser.uid);
+async function rejectFriendRequest(requesterUid, currentUser) {
+  const currentRef = doc(db, 'users', currentUser.uid);
 
   await updateDoc(currentRef, {
     friendRequests: arrayRemove(requesterUid)
@@ -84,5 +85,3 @@ function escapeHtml(str) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
 }
-
-export { listenToFriendRequests };
