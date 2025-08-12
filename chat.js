@@ -1,16 +1,13 @@
 // chat.js
-import { getFirestore, doc, setDoc, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
-import { getDatabase, ref, onValue, onDisconnect, set } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-database.js";
-import { auth } from "./auth.js";
+import { getFirestore, collection, addDoc, serverTimestamp, query, orderBy, onSnapshot } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const db = getFirestore();
-const dbRT = getDatabase();
 
 let unsubscribeMessages = null;
 
-function loadMessages(currentChatId) {
+export function loadMessages() {
   if (unsubscribeMessages) unsubscribeMessages();
-  const q = query(collection(db, 'chats', currentChatId, 'messages'), orderBy('timestamp'));
+  const q = query(collection(db, 'messages'), orderBy('timestamp'));
   unsubscribeMessages = onSnapshot(q, (snapshot) => {
     const messagesDiv = document.getElementById('messages');
     messagesDiv.innerHTML = '';
@@ -28,13 +25,20 @@ function loadMessages(currentChatId) {
   });
 }
 
-function sendMessage(currentChatId, currentUser, text) {
-  addDoc(collection(db, 'chats', currentChatId, 'messages'), {
-    text,
-    name: currentUser.displayName || currentUser.email || 'Anonymous',
-    uid: currentUser.uid,
-    timestamp: serverTimestamp()
-  });
+export async function sendMessage(currentUser, text) {
+  if (!currentUser) { alert('Please login first'); return; }
+  if (!text) return;
+  try {
+    await addDoc(collection(db, 'messages'), {
+      text,
+      name: currentUser.displayName || currentUser.email || 'Anonymous',
+      uid: currentUser.uid,
+      timestamp: serverTimestamp()
+    });
+  } catch (err) {
+    console.error('Send message error', err);
+    alert('Failed to send message');
+  }
 }
 
 function escapeHtml(str) {
@@ -43,5 +47,3 @@ function escapeHtml(str) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
 }
-
-export { loadMessages, sendMessage };
