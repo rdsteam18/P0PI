@@ -1,10 +1,9 @@
 // friends-list.js
-import { getFirestore, doc, getDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.1.0/firebase-firestore.js";
-import { auth } from "./auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 const db = getFirestore();
 
-async function loadFriendsList(currentUser) {
+export async function loadFriendsList(currentUser) {
   if (!currentUser) return;
   const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
   if (!userSnap.exists()) return;
@@ -37,5 +36,3 @@ function escapeHtml(str) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   })[c]);
 }
-
-export { loadFriendsList };
