@@ -25,53 +25,49 @@
       to { transform: translateY(0); opacity: 1; }
     }
     #messages::-webkit-scrollbar,
-    #friendsMessages::-webkit-scrollbar,
-    #privateMessages::-webkit-scrollbar {
+    #friendsMessages::-webkit-scrollbar {
       width: 6px;
     }
     #messages::-webkit-scrollbar-track,
-    #friendsMessages::-webkit-scrollbar-track,
-    #privateMessages::-webkit-scrollbar-track {
+    #friendsMessages::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
     #messages::-webkit-scrollbar-thumb,
-    #friendsMessages::-webkit-scrollbar-thumb,
-    #privateMessages::-webkit-scrollbar-thumb {
+    #friendsMessages::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 3px;
     }
     #messages::-webkit-scrollbar-thumb:hover,
-    #friendsMessages::-webkit-scrollbar-thumb:hover,
-    #privateMessages::-webkit-scrollbar-thumb:hover {
+    #friendsMessages::-webkit-scrollbar-thumb:hover {
       background: #555;
     }
+    .chat-tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+    }
     .chat-tab {
-      transition: all 0.3s ease;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
     }
     .chat-tab.active {
-      background-color: #4f46e5;
-      color: white;
+      border-bottom-color: #4f46e5;
+      color: #4f46e5;
     }
-    .menu-item {
-      transition: all 0.2s ease;
+    .chat-content {
+      display: none;
+      flex-direction: column;
+      height: calc(100% - 50px);
     }
-    .menu-item:hover {
-      background-color: #f3f4f6;
+    .chat-content.active {
+      display: flex;
     }
-    .active-friend {
-      background-color: #e0e7ff;
+    .friend-chat-item {
+      transition: all 0.2s;
     }
-    .menu-enter {
-      animation: menuEnter 0.2s ease-out;
-    }
-    @keyframes menuEnter {
-      from { transform: translateY(-10px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    @media (max-width: 768px) {
-      .chat-container {
-        height: calc(100vh - 200px) !important;
-      }
+    .friend-chat-item:hover {
+      background-color: #f9fafb;
     }
   </style>
 </head>
@@ -82,26 +78,7 @@
       <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">
         <i class="fas fa-graduation-cap mr-2"></i>P0PI
       </h1>
-      <div id="userInfo" class="flex items-center space-x-2">
-        <div class="relative">
-          <button id="menuBtn" class="p-2 rounded-full hover:bg-gray-100">
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
-          <div id="menuDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200 menu-enter">
-            <div class="py-1">
-              <a href="#" id="profileBtn" class="menu-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                <i class="fas fa-user mr-2"></i> Profile
-              </a>
-              <a href="#" id="settingsBtn" class="menu-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                <i class="fas fa-cog mr-2"></i> Settings
-              </a>
-              <a href="#" id="logoutBtn" class="menu-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
-                <i class="fas fa-sign-out-alt mr-2"></i> Logout
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
+      <div id="userInfo" class="flex items-center space-x-2"></div>
     </header>
 
     <!-- Main Content -->
@@ -120,8 +97,8 @@
           <h3 class="font-semibold text-lg mb-3 text-gray-800">
             <i class="fas fa-search mr-2 text-indigo-600"></i>Find Study Partners
           </h3>
-          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)"
-                  class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" 
+                 class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
           <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
         </div>
 
@@ -155,50 +132,52 @@
       <!-- Right Column - Chat Area -->
       <div id="chatArea" class="lg:col-span-2 hidden">
         <div class="bg-white rounded-lg shadow h-full flex flex-col">
-          <!-- Chat Header with Tabs -->
-          <div class="p-4 border-b border-gray-200">
-            <div class="flex justify-between items-center mb-2">
-              <h2 id="chatTitle" class="font-semibold text-lg text-gray-800">
-                <i class="fas fa-comments mr-2 text-indigo-600"></i>Study Chat
-              </h2>
-              <div id="onlineCount" class="flex items-center text-sm text-gray-600">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                <span id="onlineUsers">0</span> online
+          <!-- Chat Tabs -->
+          <div class="chat-tabs">
+            <div id="worldTab" class="chat-tab active">
+              <i class="fas fa-globe mr-2"></i>World Chat
+            </div>
+            <div id="friendsTab" class="chat-tab">
+              <i class="fas fa-user-friends mr-2"></i>Friends
+            </div>
+          </div>
+          
+          <!-- World Chat Content -->
+          <div id="worldContent" class="chat-content active">
+            <!-- Messages -->
+            <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50"></div>
+            
+            <!-- Message Input -->
+            <div class="p-4 border-t border-gray-200">
+              <div class="flex space-x-2">
+                <input id="msgInput" type="text" placeholder="Type a message..." 
+                       class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
+                  <i class="fas fa-paper-plane"></i>
+                </button>
               </div>
             </div>
-            <div class="flex border-b border-gray-200">
-              <button id="worldChatTab" class="chat-tab active flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-globe mr-1"></i> World Chat
-              </button>
-              <button id="friendsChatTab" class="chat-tab flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-user-friends mr-1"></i> Friends Chat
-              </button>
-              <button id="privateChatTab" class="chat-tab flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-lock mr-1"></i> Private Chat
-              </button>
+          </div>
+          
+          <!-- Friends Chat Content -->
+          <div id="friendsContent" class="chat-content">
+            <!-- Friends Chat List -->
+            <div id="friendsChatList" class="flex-1 p-4 overflow-y-auto bg-gray-50 space-y-2">
+              <div class="text-gray-500 text-center py-4">Select a friend to chat with</div>
             </div>
-          </div>
-
-          <!-- Messages Container -->
-          <div class="flex-1 relative">
-            <!-- World Chat Messages -->
-            <div id="messages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50"></div>
             
-            <!-- Friends Chat Messages -->
-            <div id="friendsMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-            
-            <!-- Private Chat Messages -->
-            <div id="privateMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-          </div>
-
-          <!-- Message Input -->
-          <div class="p-4 border-t border-gray-200">
-            <div id="messageInputContainer" class="flex space-x-2">
-              <input id="msgInput" type="text" placeholder="Type a message..."
-                      class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-              <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
-                <i class="fas fa-paper-plane"></i>
-              </button>
+            <!-- Selected Friend Chat -->
+            <div id="selectedFriendChat" class="hidden flex-1 flex flex-col">
+              <div id="friendsMessages" class="flex-1 p-4 overflow-y-auto bg-gray-50"></div>
+              <div class="p-4 border-t border-gray-200">
+                <div class="flex space-x-2">
+                  <input id="friendMsgInput" type="text" placeholder="Type a message..." 
+                         class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                  <button id="sendFriendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
+                    <i class="fas fa-paper-plane"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -237,11 +216,29 @@
     let unsubscribeFriendRequests = null;
     let unsubscribeOnlineUsers = null;
     let unsubscribeFriends = null;
-    let unsubscribeFriendsMessages = null;
-    let unsubscribePrivateMessages = null;
-    let currentChatTab = 'world'; // 'world', 'friends', or 'private'
-    let currentPrivateChatFriend = null;
-    let friendRequestData = JSON.parse(localStorage.getItem('friendRequests') || '[]');
+    let unsubscribeFriendChat = null;
+    let currentFriendChat = null;
+
+    // Auto-scroll function
+    function scrollToBottom(elementId) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.scrollTop = element.scrollHeight;
+      }
+    }
+
+    // Save friend requests to localStorage
+    function saveFriendRequestsToLocal(requests) {
+      if (!currentUser) return;
+      localStorage.setItem(`friendRequests_${currentUser.uid}`, JSON.stringify(requests));
+    }
+
+    // Load friend requests from localStorage
+    function loadFriendRequestsFromLocal() {
+      if (!currentUser) return [];
+      const savedRequests = localStorage.getItem(`friendRequests_${currentUser.uid}`);
+      return savedRequests ? JSON.parse(savedRequests) : [];
+    }
 
     // Notification system
     function showNotification(type, message) {
@@ -279,16 +276,6 @@
       setTimeout(() => {
         notification.remove();
       }, 5000);
-    }
-
-    // Auto-scroll chat to bottom
-    function autoScrollChat(containerId) {
-      const container = document.getElementById(containerId);
-      if (container) {
-        setTimeout(() => {
-          container.scrollTop = container.scrollHeight;
-        }, 100);
-      }
     }
 
     // Track online users
@@ -344,32 +331,15 @@
         ui.innerHTML = '';
         return;
       }
-      
-      const menuDropdown = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
-              alt="photo" class="w-8 h-8 rounded-full">
+      ui.innerHTML = `
+        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}" 
+             alt="photo" class="w-8 h-8 rounded-full">
         <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
+        <button id="logoutBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg ml-2">
+          <i class="fas fa-sign-out-alt mr-1"></i>Logout
+        </button>
       `;
-      
-      ui.innerHTML = menuDropdown;
-      
-      // Menu toggle functionality
-      document.getElementById('menuBtn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const menu = document.getElementById('menuDropdown');
-        menu.classList.toggle('hidden');
-      });
-      
-      // Close menu when clicking outside
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('#userInfo')) {
-          document.getElementById('menuDropdown').classList.add('hidden');
-        }
-      });
-      
-      // Logout button in menu
-      document.getElementById('logoutBtn').addEventListener('click', async (e) => {
-        e.preventDefault();
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
         try {
           // Set user as offline before signing out
           const userStatusRef = doc(db, 'status', user.uid);
@@ -379,26 +349,11 @@
           });
           
           await signOut(auth);
-          document.getElementById('menuDropdown').classList.add('hidden');
           showNotification('info', 'Logged out successfully');
         } catch (err) {
           console.error('Logout error', err);
           showNotification('error', 'Logout failed: ' + (err.message || err));
         }
-      });
-      
-      // Profile button
-      document.getElementById('profileBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        showNotification('info', 'Profile feature coming soon!');
-        document.getElementById('menuDropdown').classList.add('hidden');
-      });
-      
-      // Settings button
-      document.getElementById('settingsBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        showNotification('info', 'Settings feature coming soon!');
-        document.getElementById('menuDropdown').classList.add('hidden');
       });
     }
 
@@ -423,6 +378,12 @@
         listenToFriendRequests();
         loadFriendsList();
         trackOnlineStatus();
+        
+        // Load friend requests from localStorage
+        const savedRequests = loadFriendRequestsFromLocal();
+        if (savedRequests.length > 0) {
+          renderFriendRequests(savedRequests);
+        }
       } else {
         currentUser = null;
         showUser(null);
@@ -433,52 +394,8 @@
         if (unsubscribeFriendRequests) unsubscribeFriendRequests();
         if (unsubscribeOnlineUsers) unsubscribeOnlineUsers();
         if (unsubscribeFriends) unsubscribeFriends();
-        if (unsubscribeFriendsMessages) unsubscribeFriendsMessages();
-        if (unsubscribePrivateMessages) unsubscribePrivateMessages();
+        if (unsubscribeFriendChat) unsubscribeFriendChat();
       }
-    });
-
-    // Chat tab switching
-    document.getElementById('worldChatTab').addEventListener('click', () => {
-      currentChatTab = 'world';
-      document.getElementById('messages').classList.remove('hidden');
-      document.getElementById('friendsMessages').classList.add('hidden');
-      document.getElementById('privateMessages').classList.add('hidden');
-      document.getElementById('worldChatTab').classList.add('active');
-      document.getElementById('friendsChatTab').classList.remove('active');
-      document.getElementById('privateChatTab').classList.remove('active');
-      document.getElementById('chatTitle').innerHTML = '<i class="fas fa-globe mr-2 text-indigo-600"></i> World Chat';
-      autoScrollChat('messages');
-    });
-
-    document.getElementById('friendsChatTab').addEventListener('click', () => {
-      currentChatTab = 'friends';
-      document.getElementById('messages').classList.add('hidden');
-      document.getElementById('friendsMessages').classList.remove('hidden');
-      document.getElementById('privateMessages').classList.add('hidden');
-      document.getElementById('worldChatTab').classList.remove('active');
-      document.getElementById('friendsChatTab').classList.add('active');
-      document.getElementById('privateChatTab').classList.remove('active');
-      document.getElementById('chatTitle').innerHTML = '<i class="fas fa-user-friends mr-2 text-indigo-600"></i> Friends Chat';
-      autoScrollChat('friendsMessages');
-    });
-
-    document.getElementById('privateChatTab').addEventListener('click', () => {
-      if (!currentPrivateChatFriend) {
-        showNotification('info', 'Select a friend from your friends list to start private chat');
-        document.getElementById('friendsChatTab').click();
-        return;
-      }
-      
-      currentChatTab = 'private';
-      document.getElementById('messages').classList.add('hidden');
-      document.getElementById('friendsMessages').classList.add('hidden');
-      document.getElementById('privateMessages').classList.remove('hidden');
-      document.getElementById('worldChatTab').classList.remove('active');
-      document.getElementById('friendsChatTab').classList.remove('active');
-      document.getElementById('privateChatTab').classList.add('active');
-      document.getElementById('chatTitle').innerHTML = `<i class="fas fa-lock mr-2 text-indigo-600"></i> ${currentPrivateChatFriend.name}`;
-      autoScrollChat('privateMessages');
     });
 
     // Send chat message
@@ -498,31 +415,13 @@
       if (!text) return;
       
       try {
-        if (currentChatTab === 'world') {
-          await addDoc(collection(db, 'messages'), {
-            text,
-            name: currentUser.displayName || currentUser.email || 'Anonymous',
-            uid: currentUser.uid,
-            photo: currentUser.photoURL || '',
-            timestamp: serverTimestamp()
-          });
-        } else if (currentChatTab === 'private' && currentPrivateChatFriend) {
-          // Create a unique conversation ID for private chat
-          const conversationId = [currentUser.uid, currentPrivateChatFriend.uid].sort().join('_');
-          
-          await addDoc(collection(db, 'privateMessages', conversationId, 'messages'), {
-            text,
-            senderId: currentUser.uid,
-            senderName: currentUser.displayName || currentUser.email || 'Anonymous',
-            senderPhoto: currentUser.photoURL || '',
-            receiverId: currentPrivateChatFriend.uid,
-            timestamp: serverTimestamp()
-          });
-        } else if (currentChatTab === 'friends') {
-          showNotification('info', 'Select a friend from the list to start private chat');
-          return;
-        }
-        
+        await addDoc(collection(db, 'messages'), {
+          text,
+          name: currentUser.displayName || currentUser.email || 'Anonymous',
+          uid: currentUser.uid,
+          photo: currentUser.photoURL || '',
+          timestamp: serverTimestamp()
+        });
         textEl.value = '';
       } catch (err) {
         console.error('Send message error', err);
@@ -530,7 +429,7 @@
       }
     }
 
-    // Load public chat messages realtime
+    // Load chat messages realtime
     function loadMessages() {
       if (unsubscribeMessages) unsubscribeMessages();
       const q = query(collection(db, 'messages'), orderBy('timestamp'));
@@ -549,13 +448,13 @@
           el.classList.add('message-enter');
           
           const time = msg.timestamp && msg.timestamp.toDate ? 
-              msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+            msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
           
           el.innerHTML = `
             <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
               ${!isCurrentUser ? `
-                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
+                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                     alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
               ` : ''}
               <div>
                 <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
@@ -569,7 +468,9 @@
           
           messagesDiv.appendChild(el);
         });
-        autoScrollChat('messages');
+        
+        // Auto-scroll to bottom
+        scrollToBottom('messages');
       }, (err) => {
         console.error('Messages onSnapshot error', err);
         showNotification('error', 'Error loading messages');
@@ -584,23 +485,7 @@
       })[c]);
     }
 
-    // Save friend request to local storage
-    function saveFriendRequestToLocal(requesterUid, targetUid) {
-      friendRequestData.push({
-        requester: requesterUid,
-        target: targetUid,
-        timestamp: new Date().toISOString()
-      });
-      localStorage.setItem('friendRequests', JSON.stringify(friendRequestData));
-    }
-
-    // Remove friend request from local storage
-    function removeFriendRequestFromLocal(requesterUid, targetUid) {
-      friendRequestData = friendRequestData.filter(req => 
-        !(req.requester === requesterUid && req.target === targetUid)
-      );
-      localStorage.setItem('friendRequests', JSON.stringify(friendRequestData));
-    }
+    // ----- FRIEND REQUEST SYSTEM -----
 
     // Send Friend Request
     async function sendFriendRequest(targetUid) {
@@ -619,9 +504,6 @@
         await updateDoc(targetRef, {
           friendRequests: arrayUnion(currentUser.uid)
         });
-        
-        // Save to local storage
-        saveFriendRequestToLocal(currentUser.uid, targetUid);
         
         showNotification('success', 'Friend request sent!');
       } catch (err) {
@@ -647,12 +529,6 @@
           friends: arrayUnion(currentUser.uid)
         });
         
-        // Remove from local storage
-        removeFriendRequestFromLocal(requesterUid, currentUser.uid);
-        
-        // Load updated friends list
-        loadFriendsList();
-        
         showNotification('success', 'Friend request accepted!');
       } catch (err) {
         console.error('Accept friend request error', err);
@@ -669,9 +545,6 @@
         await updateDoc(currentRef, {
           friendRequests: arrayRemove(requesterUid)
         });
-        
-        // Remove from local storage
-        removeFriendRequestFromLocal(requesterUid, currentUser.uid);
         
         showNotification('info', 'Friend request rejected');
       } catch (err) {
@@ -691,6 +564,7 @@
         const data = docSnap.data();
         const requests = data.friendRequests || [];
         renderFriendRequests(requests);
+        saveFriendRequestsToLocal(requests);
       });
     }
 
@@ -717,8 +591,8 @@
         
         div.innerHTML = `
           <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
+            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
             <div>
               <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
               <div class="text-xs text-gray-500">wants to connect</div>
@@ -753,107 +627,159 @@
         
         const data = docSnap.data();
         const friends = data.friends || [];
-        const container = document.getElementById('friendsList');
-        container.innerHTML = '';
+        renderFriendsList(friends);
+        renderFriendsChatList(friends);
+      });
+    }
+
+    // Render friends list
+    function renderFriendsList(friends) {
+      const container = document.getElementById('friendsList');
+      container.innerHTML = '';
+      
+      if (friends.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
+        document.getElementById('friendCount').textContent = '';
+        return;
+      }
+      
+      document.getElementById('friendCount').textContent = friends.length;
+      
+      friends.forEach(async (uid) => {
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (!userSnap.exists()) return;
         
-        if (friends.length === 0) {
-          container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
-          document.getElementById('friendCount').textContent = '';
-          return;
-        }
+        const userData = userSnap.data();
+        const isOnline = await checkOnlineStatus(uid);
         
-        document.getElementById('friendCount').textContent = friends.length;
+        const div = document.createElement('div');
+        div.className = 'flex items-center p-2 hover:bg-gray-50 rounded';
         
-        // Get online status for friends
-        const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-        const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
-        const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
+        div.innerHTML = `
+          <div class="relative">
+            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
+            <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
+          </div>
+          <div class="ml-3">
+            <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
+            <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
+          </div>
+        `;
         
-        for (const uid of friends) {
-          const userSnap = await getDoc(doc(db, 'users', uid));
-          if (!userSnap.exists()) continue;
-          
-          const userData = userSnap.data();
-          const isOnline = onlineUsers.includes(uid);
-          
-          const div = document.createElement('div');
-          div.className = `flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer ${currentPrivateChatFriend?.uid === uid ? 'active-friend' : ''}`;
-          div.setAttribute('data-friend-id', uid);
-          
-          div.innerHTML = `
+        container.appendChild(div);
+      });
+    }
+
+    // Render friends chat list
+    async function renderFriendsChatList(friends) {
+      const container = document.getElementById('friendsChatList');
+      container.innerHTML = '';
+      
+      if (friends.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
+        return;
+      }
+      
+      // Get online status for friends
+      const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
+      const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
+      const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
+      
+      for (const uid of friends) {
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (!userSnap.exists()) continue;
+        
+        const userData = userSnap.data();
+        const isOnline = onlineUsers.includes(uid);
+        
+        const div = document.createElement('div');
+        div.className = 'friend-chat-item flex items-center justify-between p-3 bg-white rounded-lg shadow cursor-pointer';
+        div.dataset.uid = uid;
+        
+        div.innerHTML = `
+          <div class="flex items-center">
             <div class="relative">
-              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                    alt="photo" class="w-10 h-10 rounded-full">
+              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                   alt="photo" class="w-10 h-10 rounded-full">
               <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
             </div>
             <div class="ml-3">
               <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
+              <div class="text-xs text-gray-500">${isOnline ? 'Online' : 'Offline'}</div>
             </div>
-          `;
-          
-          // Add click handler to start private chat
-          div.addEventListener('click', () => {
-            // Highlight selected friend
-            document.querySelectorAll('#friendsList > div').forEach(el => {
-              el.classList.remove('active-friend');
-            });
-            div.classList.add('active-friend');
-            
-            // Set current private chat friend
-            currentPrivateChatFriend = {
-              uid,
-              name: userData.name || userData.email || 'User',
-              photo: userData.photo || 'https://www.gravatar.com/avatar/?d=mp'
-            };
-            
-            // Load private messages
-            loadPrivateMessages(uid);
-            
-            // Switch to private chat tab
-            document.getElementById('privateChatTab').click();
-          });
-          
-          container.appendChild(div);
-        }
-      });
+          </div>
+          <button class="start-chat-btn bg-indigo-600 hover:bg-indigo-700 text-white text-sm py-1 px-3 rounded-lg">
+            Chat
+          </button>
+        `;
+        
+        div.querySelector('.start-chat-btn').addEventListener('click', (e) => {
+          e.stopPropagation();
+          startFriendChat(uid, userData);
+        });
+        
+        container.appendChild(div);
+      }
     }
 
-    // Load private messages
-    function loadPrivateMessages(friendUid) {
-      if (!currentUser || !friendUid) return;
-      if (unsubscribePrivateMessages) unsubscribePrivateMessages();
+    // Start a chat with a friend
+    function startFriendChat(friendUid, friendData) {
+      currentFriendChat = friendUid;
       
-      // Create a unique conversation ID
-      const conversationId = [currentUser.uid, friendUid].sort().join('_');
+      // Show the chat area
+      document.getElementById('selectedFriendChat').classList.remove('hidden');
+      document.getElementById('friendsChatList').classList.add('hidden');
       
+      // Set friend info
+      const messagesDiv = document.getElementById('friendsMessages');
+      messagesDiv.innerHTML = `<div class="text-center py-4 text-gray-500">Loading messages...</div>`;
+      
+      // Load messages
+      loadFriendMessages(friendUid);
+      
+      // Setup message sending
+      document.getElementById('sendFriendBtn').onclick = () => sendFriendMessage(friendUid);
+      document.getElementById('friendMsgInput').onkeypress = (e) => {
+        if (e.key === 'Enter') sendFriendMessage(friendUid);
+      };
+    }
+
+    // Load messages between friends
+    function loadFriendMessages(friendUid) {
+      if (unsubscribeFriendChat) unsubscribeFriendChat();
+      
+      const messagesDiv = document.getElementById('friendsMessages');
+      messagesDiv.innerHTML = '';
+      
+      // Query messages where either:
+      // - sender is current user and recipient is friend
+      // - sender is friend and recipient is current user
       const q = query(
-        collection(db, 'privateMessages', conversationId, 'messages'),
+        collection(db, 'privateMessages'),
+        where('participants', 'array-contains', currentUser.uid),
         orderBy('timestamp')
       );
       
-      unsubscribePrivateMessages = onSnapshot(q, (snapshot) => {
-        const messagesDiv = document.getElementById('privateMessages');
+      unsubscribeFriendChat = onSnapshot(q, (snapshot) => {
         messagesDiv.innerHTML = '';
         
-        snapshot.forEach((snapDoc) => {
-          const msg = snapDoc.data();
-          const el = document.createElement('div');
+        snapshot.forEach((doc) => {
+          const msg = doc.data();
+          if (!msg.participants.includes(friendUid)) return;
           
-          // Check if message is from current user
-          const isCurrentUser = msg.senderId === currentUser.uid;
+          const isCurrentUser = msg.sender === currentUser.uid;
+          const time = msg.timestamp?.toDate?.().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || '';
           
-          el.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
-          el.classList.add('message-enter');
+          const msgEl = document.createElement('div');
+          msgEl.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+          msgEl.classList.add('message-enter');
           
-          const time = msg.timestamp && msg.timestamp.toDate ? 
-              msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-          
-          el.innerHTML = `
+          msgEl.innerHTML = `
             <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
               ${!isCurrentUser ? `
-                <img src="${escapeHtml(msg.senderPhoto || 'https://www.gravatar.com/avatar/?d=mp')}"
-                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
+                <img src="${escapeHtml(msg.senderPhoto || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                     alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
               ` : ''}
               <div>
                 <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
@@ -865,21 +791,55 @@
             </div>
           `;
           
-          messagesDiv.appendChild(el);
+          messagesDiv.appendChild(msgEl);
         });
         
-        autoScrollChat('privateMessages');
-      }, (err) => {
-        console.error('Private messages onSnapshot error', err);
-        showNotification('error', 'Error loading private messages');
+        scrollToBottom('friendsMessages');
       });
+    }
+
+    // Send private message to friend
+    async function sendFriendMessage(friendUid) {
+      if (!currentUser || !friendUid) return;
+      
+      const inputEl = document.getElementById('friendMsgInput');
+      const text = inputEl.value.trim();
+      if (!text) return;
+      
+      try {
+        // Get friend data
+        const friendSnap = await getDoc(doc(db, 'users', friendUid));
+        if (!friendSnap.exists()) throw new Error("Friend not found");
+        const friendData = friendSnap.data();
+        
+        // Create message
+        await addDoc(collection(db, 'privateMessages'), {
+          text,
+          sender: currentUser.uid,
+          senderName: currentUser.displayName || currentUser.email || 'Anonymous',
+          senderPhoto: currentUser.photoURL || '',
+          participants: [currentUser.uid, friendUid],
+          timestamp: serverTimestamp()
+        });
+        
+        inputEl.value = '';
+      } catch (err) {
+        console.error('Send friend message error', err);
+        showNotification('error', 'Failed to send message');
+      }
+    }
+
+    // Check if a user is online
+    async function checkOnlineStatus(uid) {
+      const statusDoc = await getDoc(doc(db, 'status', uid));
+      return statusDoc.exists() && statusDoc.data().state === 'online';
     }
 
     function clearFriendRequestsUI() {
       document.getElementById('friendRequests').innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
       document.getElementById('requestCount').textContent = '';
     }
-
+    
     function clearFriendsListUI() {
       document.getElementById('friendsList').innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
       document.getElementById('friendCount').textContent = '';
@@ -895,7 +855,7 @@
       
       const q = query(
         collection(db, 'users'), 
-        where('name', '>=', searchText),
+        where('name', '>=', searchText), 
         where('name', '<=', searchText + '\uf8ff')
       );
       
@@ -917,36 +877,32 @@
         return;
       }
       
-      // Check local storage for sent requests
-      const sentRequests = friendRequestData.filter(req => req.requester === currentUser.uid).map(req => req.target);
-      
       for (const docSnap of querySnapshot.docs) {
         const user = docSnap.data();
         if (user.uid === currentUser.uid) continue; // skip yourself
         
         const alreadyFriend = friends.includes(user.uid);
-        const requestSent = sentRequests.includes(user.uid);
-        const requestReceived = incomingRequests.includes(user.uid);
+        const requestSent = incomingRequests.includes(user.uid);
         
         const div = document.createElement('div');
         div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
         
         div.innerHTML = `
           <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
+            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
             <div>
               <div class="font-medium">${escapeHtml(user.name || user.email || 'User')}</div>
               <div class="text-xs text-gray-500">${user.email || ''}</div>
             </div>
           </div>
-          <button ${alreadyFriend || requestSent || requestReceived ? 'disabled' : ''}
-                  class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent || requestReceived ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
-            ${alreadyFriend ? 'Friends' : requestReceived ? 'Requested You' : requestSent ? 'Requested' : 'Add'}
+          <button ${alreadyFriend || requestSent ? 'disabled' : ''} 
+                  class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
+            ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add'}
           </button>
         `;
         
-        if (!alreadyFriend && !requestSent && !requestReceived) {
+        if (!alreadyFriend && !requestSent) {
           div.querySelector('.sendRequestBtn').addEventListener('click', () => {
             sendFriendRequest(user.uid);
             div.querySelector('.sendRequestBtn').disabled = true;
@@ -967,6 +923,32 @@
         timeout = setTimeout(() => func.apply(this, args), wait);
       };
     }
+
+    // Tab switching functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      const worldTab = document.getElementById('worldTab');
+      const friendsTab = document.getElementById('friendsTab');
+      const worldContent = document.getElementById('worldContent');
+      const friendsContent = document.getElementById('friendsContent');
+      
+      worldTab.addEventListener('click', () => {
+        worldTab.classList.add('active');
+        friendsTab.classList.remove('active');
+        worldContent.classList.add('active');
+        friendsContent.classList.remove('active');
+        
+        // Show friends list and hide chat if open
+        document.getElementById('friendsChatList').classList.remove('hidden');
+        document.getElementById('selectedFriendChat').classList.add('hidden');
+      });
+      
+      friendsTab.addEventListener('click', () => {
+        friendsTab.classList.add('active');
+        worldTab.classList.remove('active');
+        friendsContent.classList.add('active');
+        worldContent.classList.remove('active');
+      });
+    });
   </script>
 </body>
 </html>
