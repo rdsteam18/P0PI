@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ... existing head content ... -->
+  <style>
+    /* Add tab styles */
+    .chat-tabs {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    .chat-tab {
+      padding: 12px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+    }
+    .chat-tab.active {
+      border-bottom-color: #4f46e5;
+      color: #4f46e5;
+    }
+    .chat-content {
+      display: none;
+    }
+    .chat-content.active {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen p-4 md:p-6">
+  <!-- ... existing body content ... -->
+
+  <script type="module">
+    // ... existing Firebase imports and config ...
+
+    // Auto-scroll function
+    function scrollToBottom(elementId) {
+      const element = document.getElementById(elementId);
+      if (element) {
+        element.scrollTop = element.scrollHeight;
+      }
+    }
+
+    // Modified loadMessages function with auto-scroll
+    function loadMessages() {
+      if (unsubscribeMessages) unsubscribeMessages();
+      const q = query(collection(db, 'messages'), orderBy('timestamp'));
+      unsubscribeMessages = onSnapshot(q, (snapshot) => {
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML = '';
+        
+        snapshot.forEach((snapDoc) => {
+          // ... existing message rendering code ...
+        });
+        
+        // Auto-scroll to bottom after messages load
+        scrollToBottom('messages');
+      }, (err) => {
+        console.error('Messages onSnapshot error', err);
+        showNotification('error', 'Error loading messages');
+      });
+    }
+
+    // Function to save friend requests to localStorage
+    function saveFriendRequestsToLocal(requests) {
+      if (!currentUser) return;
+      localStorage.setItem(`friendRequests_${currentUser.uid}`, JSON.stringify(requests));
+    }
+
+    // Function to load friend requests from localStorage
+    function loadFriendRequestsFromLocal() {
+      if (!currentUser) return [];
+      const savedRequests = localStorage.getItem(`friendRequests_${currentUser.uid}`);
+      return savedRequests ? JSON.parse(savedRequests) : [];
+    }
+
+    // Modified renderFriendRequests to use localStorage
+    async function renderFriendRequests(requestUids) {
+      // Save to localStorage
+      saveFriendRequestsToLocal(requestUids);
+      
+      // ... existing render code ...
+    }
+
+    // Initialize friend requests from localStorage on auth change
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // ... existing code ...
+        
+        // Load friend requests from localStorage
+        const savedRequests = loadFriendRequestsFromLocal();
+        if (savedRequests.length > 0) {
+          renderFriendRequests(savedRequests);
+        }
+      } else {
+        // ... existing code ...
+      }
+    });
+
+    // Tab functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      const worldTab = document.getElementById('worldTab');
+      const friendsTab = document.getElementById('friendsTab');
+      const worldContent = document.getElementById('worldContent');
+      const friendsContent = document.getElementById('friendsContent');
+      
+      worldTab.addEventListener('click', () => {
+        worldTab.classList.add('active');
+        friendsTab.classList.remove('active');
+        worldContent.classList.add('active');
+        friendsContent.classList.remove('active');
+      });
+      
+      friendsTab.addEventListener('click', () => {
+        friendsTab.classList.add('active');
+        worldTab.classList.remove('active');
+        friendsContent.classList.add('active');
+        worldContent.classList.remove('active');
+      });
+    });
+  </script>
+</body>
+</html>
