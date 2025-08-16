@@ -311,11 +311,26 @@
         </div>
       </div>
     </div>
+
+    <!-- Profile Settings Modal -->
+    <div id="profileModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full">
+        <h3 class="font-bold text-lg mb-4">प्रोफ़ाइल अपडेट करें</h3>
+        <div class="mb-4">
+          <label for="profileNameInput" class="block text-sm font-medium text-gray-700">नाम</label>
+          <input type="text" id="profileNameInput" class="mt-1 w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button id="profileCancelBtn" class="px-4 py-2 border border-gray-300 rounded-lg">कैंसल</button>
+          <button id="profileSaveBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-lg">सेव करें</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously, updateProfile } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
     import { 
       getFirestore, doc, setDoc, collection, addDoc, serverTimestamp,
       query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc,
@@ -396,6 +411,37 @@
       document.getElementById('mobileMenu').classList.remove('visible');
       document.getElementById('overlay').classList.add('hidden');
     });
+    
+    // Profile settings logic
+    document.getElementById('userInfo').addEventListener('click', () => {
+        if (currentUser) {
+            document.getElementById('profileModal').classList.remove('hidden');
+            document.getElementById('profileNameInput').value = currentUser.displayName || '';
+        }
+    });
+
+    document.getElementById('profileCancelBtn').addEventListener('click', () => {
+        document.getElementById('profileModal').classList.add('hidden');
+    });
+    
+    document.getElementById('profileSaveBtn').addEventListener('click', async () => {
+        if (currentUser) {
+            const newName = document.getElementById('profileNameInput').value;
+            if (newName && newName !== currentUser.displayName) {
+                try {
+                    await updateProfile(currentUser, { displayName: newName });
+                    await updateDoc(doc(db, "users", currentUser.uid), { name: newName });
+                    showNotification('success', 'प्रोफ़ाइल सफलतापूर्वक अपडेट हो गई');
+                    showUser(currentUser);
+                } catch (error) {
+                    console.error("Profile update failed:", error);
+                    showNotification('error', 'प्रोफ़ाइल अपडेट करने में विफल रहा');
+                }
+            }
+            document.getElementById('profileModal').classList.add('hidden');
+        }
+    });
+
 
     // Chat switch button for mobile
     document.getElementById('chatSwitchBtn').addEventListener('click', () => {
@@ -534,21 +580,29 @@
       
       document.body.classList.add('logged-in');
       ui.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
-              alt="photo" class="w-8 h-8 rounded-full">
-        <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
+        <button id="profileBtn" class="flex items-center space-x-2">
+            <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}" alt="photo" class="w-8 h-8 rounded-full">
+            <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
+        </button>
         <button id="logoutBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg ml-2">
-          <i class="fas fa-sign-out-alt mr-1"></i>लॉग आउट
+            <i class="fas fa-sign-out-alt mr-1"></i>लॉग आउट
         </button>
       `;
       mobileUi.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
-              alt="photo" class="w-10 h-10 rounded-full">
-        <div>
-          <div class="font-medium">${user.displayName || user.email || 'User'}</div>
-          <div class="text-xs text-gray-500">${user.email || ''}</div>
+        <div class="flex items-center">
+            <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}" alt="photo" class="w-10 h-10 rounded-full">
+            <div class="ml-3">
+                <div class="font-medium">${user.displayName || user.email || 'User'}</div>
+                <div class="text-xs text-gray-500">${user.email || ''}</div>
+            </div>
         </div>
       `;
+      document.getElementById('profileBtn').addEventListener('click', () => {
+          if (currentUser) {
+              document.getElementById('profileModal').classList.remove('hidden');
+              document.getElementById('profileNameInput').value = currentUser.displayName || '';
+          }
+      });
       document.getElementById('logoutBtn').addEventListener('click', async () => {
         try {
           // Set user as offline before signing out
