@@ -1,1241 +1,1333 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>P0PI</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <style>
-    /* Custom CSS for a better experience, complementing Tailwind */
-    .notification {
-      animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 3s forwards;
-    }
-    @keyframes slideIn {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
-    @keyframes fadeOut {
-      to { opacity: 0; }
-    }
-    .message-enter {
-      animation: messageEnter 0.3s ease-out;
-    }
-    @keyframes messageEnter {
-      from { transform: translateY(10px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
-    /* Custom scrollbar styles for different browsers */
-    #messages::-webkit-scrollbar,
-    #friendsMessages::-webkit-scrollbar,
-    #privateMessages::-webkit-scrollbar {
-      width: 6px;
-    }
-    #messages::-webkit-scrollbar-track,
-    #friendsMessages::-webkit-scrollbar-track,
-    #privateMessages::-webkit-scrollbar-track {
-      background: #f1f1f1;
-    }
-    #messages::-webkit-scrollbar-thumb,
-    #friendsMessages::-webkit-scrollbar-thumb,
-    #privateMessages::-webkit-scrollbar-thumb {
-      background: #888;
-      border-radius: 3px;
-    }
-    #messages::-webkit-scrollbar-thumb:hover,
-    #friendsMessages::-webkit-scrollbar-thumb:hover,
-    #privateMessages::-webkit-scrollbar-thumb:hover {
-      background: #555;
-    }
-    .chat-tab {
-      transition: all 0.3s ease;
-    }
-    .chat-tab.active {
-      background-color: #4f46e5;
-      color: white;
-    }
-    /* Mobile menu transition */
-    #mobileMenu {
-      transition: transform 0.3s ease;
-    }
-    #mobileMenu.hidden {
-      transform: translateX(-100%);
-    }
-    #mobileMenu.visible {
-      transform: translateX(0);
-    }
-    /* Overlay for mobile menu */
-    #overlay {
-      transition: opacity 0.3s ease;
-    }
-    /* Chat switch button for mobile */
-    #chatSwitchBtn {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 40;
-      display: none;
-    }
-    @media (max-width: 768px) {
-      #chatSwitchBtn {
-        display: block;
-      }
-    }
-    /* Delete button on messages, only visible on hover */
-    .message-container {
-      position: relative;
-    }
-    .message-container:hover .delete-btn {
-      opacity: 1;
-    }
-    .delete-btn {
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      position: absolute;
-      top: -8px;
-      right: -8px;
-      background: #ef4444;
-      color: white;
-      border-radius: 50%;
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      cursor: pointer;
-    }
-    /* Hide auth options until user is logged in */
-    .auth-options {
-      display: none;
-    }
-    .logged-in .auth-options {
-      display: block;
-    }
-    .logged-in #loginBtn {
-      display: none;
-    }
-  </style>
-</head>
-<body class="bg-gray-50 min-h-screen p-4 md:p-6">
-  <div class="max-w-6xl mx-auto">
-    <!-- Mobile Menu Button -->
-    <button id="mobileMenuBtn" class="md:hidden fixed top-4 left-4 z-50 bg-indigo-600 text-white p-2 rounded-lg">
-      <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Chat Switch Button (Mobile) -->
-    <button id="chatSwitchBtn" class="bg-indigo-600 text-white p-3 rounded-full shadow-lg">
-      <i class="fas fa-comment-alt"></i>
-    </button>
-
-    <!-- Mobile Menu -->
-    <div id="mobileMenu" class="hidden fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg p-4">
-      <button id="closeMobileMenu" class="absolute top-4 right-4 text-gray-500">
-        <i class="fas fa-times"></i>
-      </button>
-      <div class="mt-8 space-y-6">
-        <div id="mobileUserInfo" class="flex items-center space-x-3 p-2 border-b border-gray-200"></div>
-        <div class="space-y-4">
-          <div class="bg-gray-100 p-3 rounded-lg">
-            <h3 class="font-semibold text-lg mb-2">
-              <i class="fas fa-user-friends mr-2"></i>Friends
-            </h3>
-            <div id="mobileFriendsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-          <div class="bg-gray-100 p-3 rounded-lg">
-            <h3 class="font-semibold text-lg mb-2">
-              <i class="fas fa-user-clock mr-2"></i>Requests
-            </h3>
-            <div id="mobileFriendRequests" class="space-y-2 max-h-60 overflow-y-auto"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Overlay for mobile menu -->
-    <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
-
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">
-        <i class="fas fa-graduation-cap mr-2"></i>P0PI
-      </h1>
-      <div id="userInfo" class="flex items-center space-x-2"></div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left Column - Search and Friends -->
-      <div id="leftColumn" class="lg:col-span-1 space-y-6">
-        <!-- Login Button -->
-        <div id="controls" class="bg-white p-4 rounded-lg shadow">
-          <button id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
-            <i class="fab fa-google mr-2"></i> Login with Google
-          </button>
-          
-          <!-- Additional Auth Options (hidden by default) -->
-          <div id="authOptions" class="auth-options mt-3 space-y-2">
-            <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
-              <i class="fas fa-envelope mr-2"></i> Login with Email
-            </button>
-            <button class="w-full bg-gray-800 hover:bg-gray-900 text-white py-2 px-4 rounded-lg flex items-center justify-center">
-              <i class="fab fa-github mr-2"></i> Login with GitHub
-            </button>
-            <button class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg flex items-center justify-center">
-              <i class="fab fa-apple mr-2"></i> Login with Apple
-            </button>
-          </div>
-        </div>
-
-        <!-- Search Section -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <h3 class="font-semibold text-lg mb-3 text-gray-800">
-            <i class="fas fa-search mr-2 text-indigo-600"></i>Find Study Partners
-          </h3>
-          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)"
-                  class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-          <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
-        </div>
-
-        <!-- Friend Requests -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-semibold text-lg text-gray-800">
-              <i class="fas fa-user-clock mr-2 text-indigo-600"></i>Friend Requests
-            </h3>
-            <span id="requestCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
-          </div>
-          <div id="friendRequests" class="space-y-2 max-h-60 overflow-y-auto">
-            <div class="text-gray-500 text-center py-4">No friend requests</div>
-          </div>
-        </div>
-
-        <!-- Friends List -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-semibold text-lg text-gray-800">
-              <i class="fas fa-user-friends mr-2 text-indigo-600"></i>Friends List
-            </h3>
-            <span id="friendCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
-          </div>
-          <div id="friendsList" class="space-y-2 max-h-60 overflow-y-auto">
-            <div class="text-gray-500 text-center py-4">No friends yet</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column - Chat Area -->
-      <div id="chatArea" class="lg:col-span-2 hidden">
-        <div class="bg-white rounded-lg shadow h-full flex flex-col">
-          <!-- Chat Header with Tabs -->
-          <div class="p-4 border-b border-gray-200">
-            <div class="flex justify-between items-center mb-2">
-              <h2 class="font-semibold text-lg text-gray-800">
-                <i class="fas fa-comments mr-2 text-indigo-600"></i>
-                <span id="chatHeaderText">Study Chat</span>
-              </h2>
-              <div id="onlineCount" class="flex items-center text-sm text-gray-600">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                <span id="onlineUsers">0</span> online
-              </div>
-            </div>
-            <div class="flex border-b border-gray-200">
-              <button id="worldChatTab" class="chat-tab active flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-globe mr-1"></i> World Chat
-              </button>
-              <button id="friendsChatTab" class="chat-tab flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-user-friends mr-1"></i> Friends Chat
-              </button>
-            </div>
-            <div id="privateChatHeader" class="hidden mt-2 flex items-center justify-between bg-indigo-50 p-2 rounded">
-              <div class="flex items-center">
-                <img id="privateChatPhoto" src="" alt="photo" class="w-8 h-8 rounded-full mr-2">
-                <span id="privateChatName" class="font-medium"></span>
-              </div>
-              <button id="exitPrivateChat" class="text-indigo-600 hover:text-indigo-800">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Messages Container -->
-          <div class="flex-1 relative">
-            <!-- World Chat Messages -->
-            <div id="messages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50"></div>
-            
-            <!-- Friends Chat Messages -->
-            <div id="friendsMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-            
-            <!-- Private Chat Messages -->
-            <div id="privateMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-          </div>
-
-          <!-- Message Input -->
-          <div class="p-4 border-t border-gray-200">
-            <div class="flex space-x-2">
-              <input id="msgInput" type="text" placeholder="Type a message..."
-                      class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-              <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
-                <i class="fas fa-paper-plane"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Notification Container -->
-    <div id="notificationContainer" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
-
-    <!-- Confirmation Modal -->
-    <div id="confirmModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-      <div class="bg-white p-6 rounded-lg max-w-sm w-full">
-        <h3 class="font-bold text-lg mb-4" id="confirmModalTitle">Confirm Deletion</h3>
-        <p class="mb-6" id="confirmModalMessage">Are you sure you want to delete this message?</p>
-        <div class="flex justify-end space-x-3">
-          <button id="confirmCancel" class="px-4 py-2 border border-gray-300 rounded-lg">Cancel</button>
-          <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg">Delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, signInWithCustomToken, signInAnonymously } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-    import { 
-      getFirestore, doc, setDoc, collection, addDoc, serverTimestamp,
-      query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc,
-      deleteDoc
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-
-    // IMPORTANT: Firebase configuration from the environment variables
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-    const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-    // Initialize Firebase
-    let app, auth, provider, db;
-    try {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        provider = new GoogleAuthProvider();
-        db = getFirestore(app);
-    } catch (e) {
-        console.error("Failed to initialize Firebase:", e);
-    }
-
-    let currentUser = null;
-    let unsubscribeMessages = null;
-    let unsubscribeFriendRequests = null;
-    let unsubscribeOnlineUsers = null;
-    let unsubscribeFriends = null;
-    let unsubscribeFriendsMessages = null;
-    let unsubscribePrivateMessages = null;
-    let currentChatTab = 'world'; // 'world' or 'friends'
-    let currentPrivateChat = null; // { uid, name, photo }
-    let messageToDelete = null; // { id, collection }
-    let isInitialLoad = true;
-    
-    // Authenticate with custom token if available, otherwise sign in anonymously
-    async function authenticate() {
-        if (initialAuthToken) {
-            await signInWithCustomToken(auth, initialAuthToken);
-        } else {
-            await signInAnonymously(auth);
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
+    <style>
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-    }
-
-    // Call authentication function on load
-    if (auth) {
-        authenticate();
-    }
-
-    // Mobile menu toggle
-    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-      document.getElementById('mobileMenu').classList.remove('hidden');
-      document.getElementById('mobileMenu').classList.add('visible');
-      document.getElementById('overlay').classList.remove('hidden');
-    });
-
-    document.getElementById('closeMobileMenu').addEventListener('click', () => {
-      document.getElementById('mobileMenu').classList.add('hidden');
-      document.getElementById('mobileMenu').classList.remove('visible');
-      document.getElementById('overlay').classList.add('hidden');
-    });
-
-    document.getElementById('overlay').addEventListener('click', () => {
-      document.getElementById('mobileMenu').classList.add('hidden');
-      document.getElementById('mobileMenu').classList.remove('visible');
-      document.getElementById('overlay').classList.add('hidden');
-    });
-
-    // Chat switch button for mobile
-    document.getElementById('chatSwitchBtn').addEventListener('click', () => {
-      if (currentChatTab === 'world' || currentPrivateChat) {
-        document.getElementById('leftColumn').classList.remove('hidden');
-        document.getElementById('chatArea').classList.add('hidden');
-      } else {
-        document.getElementById('leftColumn').classList.add('hidden');
-        document.getElementById('chatArea').classList.remove('hidden');
-      }
-    });
-
-    // Confirmation modal handlers
-    document.getElementById('confirmCancel').addEventListener('click', () => {
-      document.getElementById('confirmModal').classList.add('hidden');
-      messageToDelete = null;
-    });
-
-    document.getElementById('confirmDelete').addEventListener('click', async () => {
-      if (messageToDelete) {
-        try {
-          await deleteDoc(doc(db, messageToDelete.collection, messageToDelete.id));
-          showNotification('success', 'Message deleted successfully');
-        } catch (err) {
-          console.error('Error deleting message:', err);
-          showNotification('error', 'Failed to delete message');
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
         }
-      }
-      document.getElementById('confirmModal').classList.add('hidden');
-      messageToDelete = null;
-    });
-
-    // Notification system
-    function showNotification(type, message) {
-      const container = document.getElementById('notificationContainer');
-      const notification = document.createElement('div');
-      
-      let icon, bgColor;
-      switch(type) {
-        case 'success':
-          icon = 'fa-check-circle';
-          bgColor = 'bg-green-500';
-          break;
-        case 'error':
-          icon = 'fa-exclamation-circle';
-          bgColor = 'bg-red-500';
-          break;
-        case 'info':
-          icon = 'fa-info-circle';
-          bgColor = 'bg-blue-500';
-          break;
-        default:
-          icon = 'fa-bell';
-          bgColor = 'bg-indigo-500';
-      }
-      
-      notification.className = `notification ${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center`;
-      notification.innerHTML = `
-        <i class="fas ${icon} mr-2"></i>
-        <span>${message}</span>
-      `;
-      
-      container.appendChild(notification);
-      
-      // Auto remove after 5 seconds
-      setTimeout(() => {
-        notification.remove();
-      }, 5000);
-    }
-
-    // Auto-scroll chat to bottom
-    function autoScrollChat(containerId) {
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
-    }
-
-    // Track online users
-    function trackOnlineStatus() {
-      if (!currentUser) return;
-      
-      const userStatusRef = doc(db, 'status', currentUser.uid);
-      const isOfflineForFirestore = {
-        state: 'offline',
-        last_changed: serverTimestamp(),
-      };
-      
-      const isOnlineForFirestore = {
-        state: 'online',
-        last_changed: serverTimestamp(),
-      };
-      
-      // Set user as online
-      setDoc(userStatusRef, isOnlineForFirestore);
-      
-      // Create listener for online users
-      const onlineUsersQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-      unsubscribeOnlineUsers = onSnapshot(onlineUsersQuery, (snapshot) => {
-        document.getElementById('onlineUsers').textContent = snapshot.size;
-      });
-      
-      // Set user as offline when they disconnect
-      window.addEventListener('beforeunload', async () => {
-        await setDoc(userStatusRef, isOfflineForFirestore);
-      });
-    }
-
-    // Save user profile to Firestore
-    async function saveUserProfile(user) {
-      if (!user || !user.uid) return;
-      const userRef = doc(db, "users", user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        name: user.displayName || "No Name",
-        email: user.email || "",
-        photo: user.photoURL || "",
-        friends: [],
-        friendRequests: [],
-        createdAt: new Date().toISOString(),
-        lastSeen: serverTimestamp()
-      }, { merge: true });
-    }
-
-    // Show user info in UI
-    function showUser(user) {
-      const ui = document.getElementById('userInfo');
-      const mobileUi = document.getElementById('mobileUserInfo');
-      if (!user) {
-        ui.innerHTML = '';
-        mobileUi.innerHTML = '';
-        document.body.classList.remove('logged-in');
-        return;
-      }
-      
-      document.body.classList.add('logged-in');
-      ui.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
-              alt="photo" class="w-8 h-8 rounded-full">
-        <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
-        <button id="logoutBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg ml-2">
-          <i class="fas fa-sign-out-alt mr-1"></i>Logout
-        </button>
-      `;
-      mobileUi.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
-              alt="photo" class="w-10 h-10 rounded-full">
-        <div>
-          <div class="font-medium">${user.displayName || user.email || 'User'}</div>
-          <div class="text-xs text-gray-500">${user.email || ''}</div>
-        </div>
-      `;
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        try {
-          // Set user as offline before signing out
-          const userStatusRef = doc(db, 'status', user.uid);
-          await setDoc(userStatusRef, {
-            state: 'offline',
-            last_changed: serverTimestamp(),
-          });
-          
-          await signOut(auth);
-          showNotification('info', 'Logged out successfully');
-        } catch (err) {
-          console.error('Logout error', err);
-          showNotification('error', 'Logout failed: ' + (err.message || err));
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
         }
-      });
-    }
-
-    // Authentication
-    document.getElementById('loginBtn').addEventListener('click', async () => {
-      try {
-        await signInWithPopup(auth, provider);
-        showNotification('success', 'Logged in successfully');
-      } catch (err) {
-        console.error('Login error', err);
-        showNotification('error', 'Login failed: ' + (err.message || err));
-      }
-    });
-
-    onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        currentUser = user;
-        await saveUserProfile(user);
-        showUser(user);
-        document.getElementById('chatArea').classList.remove('hidden');
-        document.getElementById('leftColumn').classList.remove('hidden');
-        loadMessages();
-        listenToFriendRequests();
-        loadFriendsList();
-        trackOnlineStatus();
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
         
-        // Hide left column on mobile and show chat area
-        if (window.innerWidth < 1024) {
-          document.getElementById('leftColumn').classList.add('hidden');
+        /* Dark mode scrollbar */
+        .dark .custom-scrollbar::-webkit-scrollbar-track {
+            background: #2d3748;
         }
-
-        // Load any active private chat from local storage
-        const savedPrivateChat = localStorage.getItem('currentPrivateChat');
-        if (savedPrivateChat) {
-          try {
-            const chatData = JSON.parse(savedPrivateChat);
-            const friendSnap = await getDoc(doc(db, 'users', chatData.uid));
-            if (friendSnap.exists()) {
-              const friendData = friendSnap.data();
-              startPrivateChat(friendData);
-            } else {
-              localStorage.removeItem('currentPrivateChat');
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4a5568;
+        }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #718096;
+        }
+        
+        /* Animation for typing indicator */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 0.5;
             }
-          } catch(e) {
-            console.error("Error loading private chat from local storage:", e);
-            localStorage.removeItem('currentPrivateChat');
-          }
+            50% {
+                opacity: 1;
+            }
+        }
+        .typing-dot {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) {
+            animation-delay: 0s;
+        }
+        .typing-dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-dot:nth-child(3) {
+            animation-delay: 0.4s;
         }
         
-      } else {
-        currentUser = null;
-        showUser(null);
-        document.getElementById('chatArea').classList.add('hidden');
-        document.getElementById('leftColumn').classList.remove('hidden'); // Show left column on logout
-        clearFriendRequestsUI();
-        clearFriendsListUI();
-        if (unsubscribeMessages) unsubscribeMessages();
-        if (unsubscribeFriendRequests) unsubscribeFriendRequests();
-        if (unsubscribeOnlineUsers) unsubscribeOnlineUsers();
-        if (unsubscribeFriends) unsubscribeFriends();
-        if (unsubscribeFriendsMessages) unsubscribeFriendsMessages();
-        if (unsubscribePrivateMessages) unsubscribePrivateMessages();
-        localStorage.removeItem('currentPrivateChat');
-      }
-    });
-
-    // Chat tab switching
-    document.getElementById('worldChatTab').addEventListener('click', () => {
-      currentChatTab = 'world';
-      document.getElementById('messages').classList.remove('hidden');
-      document.getElementById('friendsMessages').classList.add('hidden');
-      document.getElementById('privateMessages').classList.add('hidden');
-      document.getElementById('worldChatTab').classList.add('active');
-      document.getElementById('friendsChatTab').classList.remove('active');
-      document.getElementById('chatHeaderText').textContent = 'Study Chat';
-      document.getElementById('privateChatHeader').classList.add('hidden');
-      autoScrollChat('messages');
-    });
-
-    document.getElementById('friendsChatTab').addEventListener('click', () => {
-      currentChatTab = 'friends';
-      document.getElementById('messages').classList.add('hidden');
-      
-      if (currentPrivateChat) {
-        document.getElementById('friendsMessages').classList.add('hidden');
-        document.getElementById('privateMessages').classList.remove('hidden');
-        document.getElementById('chatHeaderText').textContent = 'Private Chat';
-      } else {
-        document.getElementById('friendsMessages').classList.remove('hidden');
-        document.getElementById('privateMessages').classList.add('hidden');
-        document.getElementById('chatHeaderText').textContent = 'Friends Chat';
-      }
-      
-      document.getElementById('worldChatTab').classList.remove('active');
-      document.getElementById('friendsChatTab').classList.add('active');
-      
-      if (currentPrivateChat) {
-        autoScrollChat('privateMessages');
-      } else {
-        autoScrollChat('friendsMessages');
-      }
-    });
-
-    // Exit private chat
-    document.getElementById('exitPrivateChat').addEventListener('click', () => {
-      endPrivateChat();
-    });
-
-    // Start private chat with a friend
-    function startPrivateChat(friendData) {
-      if (!currentUser) return;
-      
-      currentPrivateChat = {
-        uid: friendData.uid,
-        name: friendData.name || friendData.email || 'Friend',
-        photo: friendData.photo || 'https://www.gravatar.com/avatar/?d=mp'
-      };
-      
-      // Save to local storage
-      localStorage.setItem('currentPrivateChat', JSON.stringify(currentPrivateChat));
-      
-      // Update UI
-      document.getElementById('privateChatPhoto').src = currentPrivateChat.photo;
-      document.getElementById('privateChatName').textContent = currentPrivateChat.name;
-      document.getElementById('privateChatHeader').classList.remove('hidden');
-      
-      // Switch to friends tab and show private chat
-      document.getElementById('friendsChatTab').click();
-      loadPrivateMessages();
-    }
-
-    // End private chat
-    function endPrivateChat() {
-      currentPrivateChat = null;
-      localStorage.removeItem('currentPrivateChat');
-      document.getElementById('privateChatHeader').classList.add('hidden');
-      document.getElementById('privateMessages').classList.add('hidden');
-      document.getElementById('friendsMessages').classList.remove('hidden');
-      document.getElementById('chatHeaderText').textContent = 'Friends Chat';
-      
-      if (unsubscribePrivateMessages) {
-        unsubscribePrivateMessages();
-        unsubscribePrivateMessages = null;
-      }
-    }
-
-    // Load private messages
-    function loadPrivateMessages() {
-      if (!currentUser || !currentPrivateChat) return;
-      
-      if (unsubscribePrivateMessages) unsubscribePrivateMessages();
-      
-      // Create a unique chat ID for these two users (sorted to ensure consistency)
-      const chatId = [currentUser.uid, currentPrivateChat.uid].sort().join('_');
-      const messagesRef = collection(db, 'privateChats', chatId, 'messages');
-      const q = query(messagesRef, orderBy('timestamp'));
-      
-      unsubscribePrivateMessages = onSnapshot(q, (snapshot) => {
-        const messagesDiv = document.getElementById('privateMessages');
-        messagesDiv.innerHTML = '';
+        /* Message bubble styling */
+        .message-bubble {
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .sent-message {
+            background-color: #dcf8c6;
+            border-radius: 18px 4px 18px 18px;
+        }
+        .received-message {
+            background-color: #ffffff;
+            border-radius: 4px 18px 18px 18px;
+        }
+        .dark .received-message {
+            background-color: #2d3748;
+        }
         
-        snapshot.forEach((snapDoc) => {
-          const msg = snapDoc.data();
-          const el = document.createElement('div');
-          
-          // Check if message is from current user
-          const isCurrentUser = msg.uid === currentUser.uid;
-          
-          el.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'} message-container`;
-          el.classList.add('message-enter');
-          
-          const time = msg.timestamp && msg.timestamp.toDate ? 
-             msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-          
-          el.innerHTML = `
-            <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
-              ${!isCurrentUser ? `
-                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
-              ` : ''}
-              <div>
-                <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
-                  ${!isCurrentUser ? `<div class="font-semibold text-sm text-gray-700">${escapeHtml(msg.name || 'Unknown')}</div>` : ''}
-                  <div class="text-sm">${escapeHtml(msg.text || '')}</div>
+        /* Emoji picker positioning */
+        .emoji-picker {
+            position: absolute;
+            bottom: 60px;
+            right: 20px;
+            z-index: 10;
+            display: none;
+        }
+        
+        /* Responsive layout */
+        @media (max-width: 768px) {
+            .chat-container {
+                grid-template-columns: 0 1fr;
+            }
+            .sidebar {
+                display: none;
+            }
+            .sidebar.active {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 80%;
+                height: 100vh;
+                z-index: 20;
+            }
+            .chat-area {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+<body class="h-full bg-gray-100 dark:bg-gray-900 transition-colors duration-300">
+    <div id="app" class="h-full flex flex-col">
+        <!-- Auth Screen -->
+        <div id="auth-screen" class="flex flex-col items-center justify-center h-full p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 w-full max-w-md">
+                <h1 class="text-3xl font-bold text-center mb-6 text-gray-800 dark:text-white">Welcome to ChatApp</h1>
+                
+                <div id="auth-tabs" class="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                    <button id="login-tab" class="flex-1 py-2 px-4 font-medium text-center text-blue-500 border-b-2 border-blue-500">Login</button>
+                    <button id="register-tab" class="flex-1 py-2 px-4 font-medium text-center text-gray-500 dark:text-gray-400">Register</button>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}">${time}</div>
-              </div>
-            </div>
-            ${isCurrentUser ? `<div class="delete-btn" data-id="${snapDoc.id}" data-collection="privateChats/${chatId}/messages">
-              <i class="fas fa-trash"></i>
-            </div>` : ''}
-          `;
-          
-          messagesDiv.appendChild(el);
-        });
-        
-        // Add delete event listeners
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            messageToDelete = {
-              id: btn.dataset.id,
-              collection: btn.dataset.collection
-            };
-            document.getElementById('confirmModal').classList.remove('hidden');
-          });
-        });
-        
-        autoScrollChat('privateMessages');
-      }, (err) => {
-        console.error('Private messages onSnapshot error', err);
-        showNotification('error', 'Error loading private messages');
-      });
-    }
-
-    // Send chat message
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    document.getElementById('msgInput').addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') sendMessage();
-    });
-
-    async function sendMessage() {
-      if (!currentUser) {
-        showNotification('error', 'Please login first');
-        return;
-      }
-      
-      const textEl = document.getElementById('msgInput');
-      const text = textEl.value.trim();
-      if (!text) return;
-      
-      try {
-        if (currentChatTab === 'world') {
-          await addDoc(collection(db, 'messages'), {
-            text,
-            name: currentUser.displayName || currentUser.email || 'Anonymous',
-            uid: currentUser.uid,
-            photo: currentUser.photoURL || '',
-            timestamp: serverTimestamp()
-          });
-        } else if (currentPrivateChat) {
-          // Private message
-          const chatId = [currentUser.uid, currentPrivateChat.uid].sort().join('_');
-          await addDoc(collection(db, 'privateChats', chatId, 'messages'), {
-            text,
-            name: currentUser.displayName || currentUser.email || 'Anonymous',
-            uid: currentUser.uid,
-            photo: currentUser.photoURL || '',
-            timestamp: serverTimestamp(),
-            to: currentPrivateChat.uid
-          });
-        } else {
-          // Friends chat without private conversation
-          showNotification('info', 'Select a friend to start private chat');
-        }
-        textEl.value = '';
-      } catch (err) {
-        console.error('Send message error', err);
-        showNotification('error', 'Failed to send message');
-      }
-    }
-
-    // Load chat messages realtime
-    function loadMessages() {
-      if (unsubscribeMessages) unsubscribeMessages();
-      const q = query(collection(db, 'messages'), orderBy('timestamp'));
-      unsubscribeMessages = onSnapshot(q, (snapshot) => {
-        const messagesDiv = document.getElementById('messages');
-        messagesDiv.innerHTML = '';
-        
-        snapshot.forEach((snapDoc) => {
-          const msg = snapDoc.data();
-          const el = document.createElement('div');
-          
-          // Check if message is from current user
-          const isCurrentUser = msg.uid === currentUser?.uid;
-          
-          el.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'} message-container`;
-          el.classList.add('message-enter');
-          
-          const time = msg.timestamp && msg.timestamp.toDate ? 
-             msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
-          
-          el.innerHTML = `
-            <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
-              ${!isCurrentUser ? `
-                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
-              ` : ''}
-              <div>
-                <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
-                  ${!isCurrentUser ? `<div class="font-semibold text-sm text-gray-700">${escapeHtml(msg.name || 'Unknown')}</div>` : ''}
-                  <div class="text-sm">${escapeHtml(msg.text || '')}</div>
+                
+                <div id="login-form">
+                    <div class="mb-4">
+                        <label for="login-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="email" id="login-email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="mb-6">
+                        <label for="login-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
+                        <input type="password" id="login-password" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <button id="login-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300 mb-4">Login</button>
+                    <button id="google-login-btn" class="w-full bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md transition duration-300 flex items-center justify-center gap-2">
+                        <i class="fab fa-google"></i> Login with Google
+                    </button>
+                    <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">Forgot password? <button id="reset-password-btn" class="text-blue-500 hover:underline">Reset</button></p>
                 </div>
-                <div class="text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}">${time}</div>
-              </div>
+                
+                <div id="register-form" class="hidden">
+                    <div class="mb-4">
+                        <label for="register-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                        <input type="text" id="register-name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="mb-4">
+                        <label for="register-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="email" id="register-email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <div class="mb-6">
+                        <label for="register-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password (min 6 chars)</label>
+                        <input type="password" id="register-password" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <button id="register-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300">Create Account</button>
+                    <p class="text-center text-sm text-gray-600 dark:text-gray-400 mt-4">Already have an account? <button id="switch-to-login" class="text-blue-500 hover:underline">Login</button></p>
+                </div>
+                
+                <div id="reset-password-form" class="hidden">
+                    <div class="mb-4">
+                        <label for="reset-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <input type="email" id="reset-email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                    </div>
+                    <button id="send-reset-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300 mb-4">Send Reset Link</button>
+                    <button id="cancel-reset-btn" class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-md transition duration-300">Cancel</button>
+                </div>
             </div>
-            ${isCurrentUser ? `<div class="delete-btn" data-id="${snapDoc.id}" data-collection="messages">
-              <i class="fas fa-trash"></i>
-            </div>` : ''}
-          `;
-          
-          messagesDiv.appendChild(el);
-        });
+        </div>
         
-        // Add delete event listeners
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            messageToDelete = {
-              id: btn.dataset.id,
-              collection: btn.dataset.collection
+        <!-- Main Chat Screen -->
+        <div id="chat-screen" class="hidden h-full">
+            <!-- Header -->
+            <header class="bg-white dark:bg-gray-800 shadow-sm py-3 px-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center">
+                    <button id="sidebar-toggle" class="mr-4 text-gray-600 dark:text-gray-300 md:hidden">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    <h1 class="text-xl font-semibold text-gray-800 dark:text-white">ChatApp</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="dark-mode-toggle" class="text-gray-600 dark:text-gray-300">
+                        <i class="fas fa-moon dark:hidden"></i>
+                        <i class="fas fa-sun hidden dark:block"></i>
+                    </button>
+                    <button id="new-chat-btn" class="text-gray-600 dark:text-gray-300">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                    <div class="relative">
+                        <button id="profile-btn" class="w-10 h-10 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-600">
+                            <img id="profile-image" src="https://via.placeholder.com/40" alt="Profile" class="w-full h-full object-cover">
+                        </button>
+                        <div id="profile-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10 border border-gray-200 dark:border-gray-700">
+                            <a href="#" id="profile-settings-btn" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Profile Settings</a>
+                            <a href="#" id="logout-btn" class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">Logout</a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Main Content -->
+            <div class="flex flex-1 overflow-hidden">
+                <!-- Sidebar -->
+                <aside id="sidebar" class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+                    <!-- Search -->
+                    <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+                        <div class="relative">
+                            <input type="text" id="chat-search" placeholder="Search chats..." class="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-500 dark:text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <!-- Chat List -->
+                    <div id="chat-list" class="flex-1 overflow-y-auto custom-scrollbar">
+                        <!-- Chats will be loaded here -->
+                        <div class="p-4 text-center text-gray-500 dark:text-gray-400">Loading chats...</div>
+                    </div>
+                    
+                    <!-- New Group Button -->
+                    <div class="p-3 border-t border-gray-200 dark:border-gray-700">
+                        <button id="new-group-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300 flex items-center justify-center gap-2">
+                            <i class="fas fa-users"></i> New Group
+                        </button>
+                    </div>
+                </aside>
+                
+                <!-- Chat Area -->
+                <main id="chat-area" class="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900">
+                    <!-- Empty State -->
+                    <div id="empty-chat" class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                        <div class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mb-4">
+                            <i class="fas fa-comments text-4xl text-gray-400 dark:text-gray-500"></i>
+                        </div>
+                        <h2 class="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No chat selected</h2>
+                        <p class="text-gray-500 dark:text-gray-400 max-w-md">Select a chat from the sidebar or start a new conversation</p>
+                        <button id="start-new-chat-btn" class="mt-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300">Start New Chat</button>
+                    </div>
+                    
+                    <!-- Active Chat -->
+                    <div id="active-chat" class="hidden flex-1 flex flex-col">
+                        <!-- Chat Header -->
+                        <div class="bg-white dark:bg-gray-800 p-3 border-b border-gray-200 dark:border-gray-700 flex items-center">
+                            <button id="back-to-chats" class="mr-2 text-gray-600 dark:text-gray-300 md:hidden">
+                                <i class="fas fa-arrow-left"></i>
+                            </button>
+                            <div class="flex items-center flex-1">
+                                <div class="relative mr-3">
+                                    <img id="chat-avatar" src="https://via.placeholder.com/40" alt="User" class="w-10 h-10 rounded-full">
+                                    <span id="online-status" class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                                </div>
+                                <div>
+                                    <h2 id="chat-name" class="font-semibold text-gray-800 dark:text-white">Chat Name</h2>
+                                    <p id="chat-status" class="text-xs text-gray-500 dark:text-gray-400">Online</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-3">
+                                <button id="chat-call-btn" class="text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                                <button id="chat-video-btn" class="text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-video"></i>
+                                </button>
+                                <button id="chat-info-btn" class="text-gray-600 dark:text-gray-300">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Messages -->
+                        <div id="messages-container" class="flex-1 overflow-y-auto p-4 custom-scrollbar space-y-3">
+                            <!-- Date divider example -->
+                            <div class="text-center my-4">
+                                <span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full">Today</span>
+                            </div>
+                            
+                            <!-- Messages will be loaded here -->
+                            <div class="text-center py-10 text-gray-500 dark:text-gray-400">Loading messages...</div>
+                        </div>
+                        
+                        <!-- Typing Indicator -->
+                        <div id="typing-indicator" class="hidden px-4 py-2 bg-gray-100 dark:bg-gray-800 text-sm text-gray-600 dark:text-gray-400 italic">
+                            <div class="flex items-center">
+                                <span id="typing-user">User</span> is typing
+                                <div class="flex ml-2">
+                                    <div class="typing-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full mx-1"></div>
+                                    <div class="typing-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full mx-1"></div>
+                                    <div class="typing-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full mx-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Message Input -->
+                        <div class="bg-white dark:bg-gray-800 p-3 border-t border-gray-200 dark:border-gray-700">
+                            <div class="flex items-center">
+                                <button id="emoji-btn" class="mx-2 text-gray-500 dark:text-gray-400 hover:text-blue-500">
+                                    <i class="far fa-smile text-xl"></i>
+                                </button>
+                                <button id="attach-btn" class="mx-2 text-gray-500 dark:text-gray-400 hover:text-blue-500">
+                                    <i class="fas fa-paperclip text-xl"></i>
+                                </button>
+                                <input type="file" id="file-input" class="hidden" accept="image/*,video/*,audio/*">
+                                <div class="flex-1 mx-2">
+                                    <input type="text" id="message-input" placeholder="Type a message..." class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                                </div>
+                                <button id="send-btn" class="mx-2 w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition duration-300">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Emoji Picker -->
+                            <div id="emoji-picker" class="emoji-picker bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-2 w-64 h-48 overflow-y-auto custom-scrollbar">
+                                <!-- Emojis will be loaded here -->
+                                <div class="grid grid-cols-8 gap-1">
+                                    <!-- Sample emojis -->
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😀</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😂</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😍</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😎</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😢</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">😡</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">👍</span>
+                                    <span class="emoji text-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded p-1">👎</span>
+                                    <!-- More emojis would be added dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+                
+                <!-- Chat Info Sidebar -->
+                <aside id="chat-info-sidebar" class="hidden w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col">
+                    <!-- Header -->
+                    <div class="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">Chat Info</h2>
+                        <button id="close-chat-info" class="text-gray-600 dark:text-gray-300">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Info Content -->
+                    <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                        <!-- Group Info -->
+                        <div id="group-info" class="hidden">
+                            <div class="text-center mb-6">
+                                <img id="group-avatar" src="https://via.placeholder.com/100" alt="Group" class="w-20 h-20 rounded-full mx-auto mb-3">
+                                <h3 id="group-name" class="text-xl font-semibold text-gray-800 dark:text-white mb-1">Group Name</h3>
+                                <p id="group-members-count" class="text-sm text-gray-500 dark:text-gray-400">5 members</p>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">About</h4>
+                                <p id="group-about" class="text-gray-700 dark:text-gray-300">Group description goes here</p>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Media, Links, and Docs</h4>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="bg-gray-100 dark:bg-gray-700 aspect-square rounded overflow-hidden">
+                                        <img src="https://via.placeholder.com/100" alt="Media" class="w-full h-full object-cover">
+                                    </div>
+                                    <!-- More media would be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">Members</h4>
+                                <div id="group-members-list" class="space-y-2">
+                                    <!-- Members will be loaded here -->
+                                </div>
+                            </div>
+                            
+                            <div id="group-admin-actions" class="space-y-2">
+                                <button id="add-members-btn" class="w-full text-left py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 transition duration-300">
+                                    <i class="fas fa-user-plus mr-2"></i> Add Members
+                                </button>
+                                <button id="edit-group-btn" class="w-full text-left py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 transition duration-300">
+                                    <i class="fas fa-edit mr-2"></i> Edit Group
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- User Info -->
+                        <div id="user-info">
+                            <div class="text-center mb-6">
+                                <img id="user-avatar" src="https://via.placeholder.com/100" alt="User" class="w-20 h-20 rounded-full mx-auto mb-3">
+                                <h3 id="user-name" class="text-xl font-semibold text-gray-800 dark:text-white mb-1">User Name</h3>
+                                <p id="user-status" class="text-sm text-gray-500 dark:text-gray-400">Online</p>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <h4 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase mb-2">About</h4>
+                                <p id="user-about" class="text-gray-700 dark:text-gray-300">User bio goes here</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <button id="block-user-btn" class="w-full text-left py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 transition duration-300">
+                                    <i class="fas fa-ban mr-2"></i> Block User
+                                </button>
+                                <button id="clear-chat-btn" class="w-full text-left py-2 px-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-700 dark:text-gray-300 transition duration-300">
+                                    <i class="fas fa-trash-alt mr-2"></i> Clear Chat
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+        </div>
+        
+        <!-- New Chat Modal -->
+        <div id="new-chat-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">New Chat</h3>
+                    <button id="close-new-chat-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <input type="text" id="search-users" placeholder="Search users..." class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                </div>
+                <div id="users-list" class="flex-1 overflow-y-auto custom-scrollbar">
+                    <!-- Users will be loaded here -->
+                    <div class="p-4 text-center text-gray-500 dark:text-gray-400">Search for users to start a chat</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- New Group Modal -->
+        <div id="new-group-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">New Group</h3>
+                    <button id="close-new-group-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center mb-4">
+                        <div class="relative mr-4">
+                            <img id="group-avatar-preview" src="https://via.placeholder.com/60" alt="Group" class="w-14 h-14 rounded-full">
+                            <button id="change-group-avatar" class="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-camera text-xs"></i>
+                            </button>
+                            <input type="file" id="group-avatar-input" class="hidden" accept="image/*">
+                        </div>
+                        <div class="flex-1">
+                            <input type="text" id="group-name-input" placeholder="Group name" class="w-full px-3 py-2 border-b border-gray-300 dark:border-gray-600 focus:outline-none focus:border-blue-500 dark:bg-gray-800 dark:text-white">
+                        </div>
+                    </div>
+                    <input type="text" id="search-group-users" placeholder="Search users to add..." class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                </div>
+                <div id="selected-members" class="p-2 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-2">
+                    <!-- Selected members will appear here -->
+                </div>
+                <div id="group-users-list" class="flex-1 overflow-y-auto custom-scrollbar">
+                    <!-- Users will be loaded here -->
+                    <div class="p-4 text-center text-gray-500 dark:text-gray-400">Search for users to add to the group</div>
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button id="create-group-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300 disabled:opacity-50" disabled>Create Group</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Profile Settings Modal -->
+        <div id="profile-settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-30 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[80vh] flex flex-col">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white">Profile Settings</h3>
+                    <button id="close-profile-settings-modal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4">
+                    <div class="text-center mb-6">
+                        <div class="relative inline-block">
+                            <img id="settings-avatar" src="https://via.placeholder.com/100" alt="Profile" class="w-24 h-24 rounded-full mx-auto mb-3">
+                            <button id="change-avatar-btn" class="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center">
+                                <i class="fas fa-camera text-sm"></i>
+                            </button>
+                            <input type="file" id="avatar-input" class="hidden" accept="image/*">
+                        </div>
+                        <button id="remove-avatar-btn" class="text-sm text-blue-500 hover:underline">Remove photo</button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label for="settings-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                            <input type="text" id="settings-name" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                        
+                        <div>
+                            <label for="settings-email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                            <input type="email" id="settings-email" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white" disabled>
+                        </div>
+                        
+                        <div>
+                            <label for="settings-about" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">About</label>
+                            <textarea id="settings-about" rows="3" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"></textarea>
+                        </div>
+                        
+                        <div>
+                            <label for="settings-password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Password (leave blank to keep current)</label>
+                            <input type="password" id="settings-password" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                    <button id="save-profile-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition duration-300">Save Changes</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification -->
+        <div id="notification" class="hidden fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-40">
+            <div class="flex items-center">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span id="notification-message">Message sent successfully</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const storage = firebase.storage();
+        const messaging = firebase.messaging();
+
+        // DOM Elements
+        const app = document.getElementById('app');
+        const authScreen = document.getElementById('auth-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        
+        // Auth elements
+        const loginTab = document.getElementById('login-tab');
+        const registerTab = document.getElementById('register-tab');
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const resetPasswordForm = document.getElementById('reset-password-form');
+        const loginBtn = document.getElementById('login-btn');
+        const googleLoginBtn = document.getElementById('google-login-btn');
+        const registerBtn = document.getElementById('register-btn');
+        const resetPasswordBtn = document.getElementById('reset-password-btn');
+        const sendResetBtn = document.getElementById('send-reset-btn');
+        const cancelResetBtn = document.getElementById('cancel-reset-btn');
+        const switchToLogin = document.getElementById('switch-to-login');
+        
+        // Chat elements
+        const sidebar = document.getElementById('sidebar');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        const chatList = document.getElementById('chat-list');
+        const chatArea = document.getElementById('chat-area');
+        const emptyChat = document.getElementById('empty-chat');
+        const activeChat = document.getElementById('active-chat');
+        const messagesContainer = document.getElementById('messages-container');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const emojiBtn = document.getElementById('emoji-btn');
+        const attachBtn = document.getElementById('attach-btn');
+        const fileInput = document.getElementById('file-input');
+        const emojiPicker = document.getElementById('emoji-picker');
+        const typingIndicator = document.getElementById('typing-indicator');
+        const chatSearch = document.getElementById('chat-search');
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const startNewChatBtn = document.getElementById('start-new-chat-btn');
+        const newGroupBtn = document.getElementById('new-group-btn');
+        const backToChats = document.getElementById('back-to-chats');
+        const chatInfoBtn = document.getElementById('chat-info-btn');
+        const chatInfoSidebar = document.getElementById('chat-info-sidebar');
+        const closeChatInfo = document.getElementById('close-chat-info');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        const profileBtn = document.getElementById('profile-btn');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const profileSettingsBtn = document.getElementById('profile-settings-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        
+        // Modals
+        const newChatModal = document.getElementById('new-chat-modal');
+        const closeNewChatModal = document.getElementById('close-new-chat-modal');
+        const searchUsers = document.getElementById('search-users');
+        const usersList = document.getElementById('users-list');
+        
+        const newGroupModal = document.getElementById('new-group-modal');
+        const closeNewGroupModal = document.getElementById('close-new-group-modal');
+        const searchGroupUsers = document.getElementById('search-group-users');
+        const groupUsersList = document.getElementById('group-users-list');
+        const selectedMembers = document.getElementById('selected-members');
+        const groupNameInput = document.getElementById('group-name-input');
+        const groupAvatarPreview = document.getElementById('group-avatar-preview');
+        const changeGroupAvatar = document.getElementById('change-group-avatar');
+        const groupAvatarInput = document.getElementById('group-avatar-input');
+        const createGroupBtn = document.getElementById('create-group-btn');
+        
+        const profileSettingsModal = document.getElementById('profile-settings-modal');
+        const closeProfileSettingsModal = document.getElementById('close-profile-settings-modal');
+        const settingsAvatar = document.getElementById('settings-avatar');
+        const changeAvatarBtn = document.getElementById('change-avatar-btn');
+        const removeAvatarBtn = document.getElementById('remove-avatar-btn');
+        const avatarInput = document.getElementById('avatar-input');
+        const settingsName = document.getElementById('settings-name');
+        const settingsEmail = document.getElementById('settings-email');
+        const settingsAbout = document.getElementById('settings-about');
+        const settingsPassword = document.getElementById('settings-password');
+        const saveProfileBtn = document.getElementById('save-profile-btn');
+        
+        // Notification
+        const notification = document.getElementById('notification');
+        const notificationMessage = document.getElementById('notification-message');
+        
+        // State variables
+        let currentUser = null;
+        let currentChat = null;
+        let isTyping = false;
+        let typingTimeout = null;
+        let selectedUsersForGroup = [];
+        
+        // Initialize the app
+        function init() {
+            try {
+                // Check if Firebase is initialized
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                
+                setupEventListeners();
+                checkAuthState();
+                setupDarkMode();
+            } catch (error) {
+                console.error('Firebase initialization error', error);
+                showNotification('Failed to initialize app. Please try again later.', 'error');
+            }
+        }
+        
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Auth events
+            loginTab.addEventListener('click', () => switchAuthTab('login'));
+            registerTab.addEventListener('click', () => switchAuthTab('register'));
+            loginBtn.addEventListener('click', handleLogin);
+            googleLoginBtn.addEventListener('click', handleGoogleLogin);
+            registerBtn.addEventListener('click', handleRegister);
+            resetPasswordBtn.addEventListener('click', () => {
+                loginForm.classList.add('hidden');
+                registerForm.classList.add('hidden');
+                resetPasswordForm.classList.remove('hidden');
+            });
+            sendResetBtn.addEventListener('click', handleResetPassword);
+            cancelResetBtn.addEventListener('click', () => {
+                resetPasswordForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+            });
+            switchToLogin.addEventListener('click', () => switchAuthTab('login'));
+            
+            // Chat events
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            backToChats.addEventListener('click', () => {
+                activeChat.classList.add('hidden');
+                emptyChat.classList.remove('hidden');
+                currentChat = null;
+            });
+            messageInput.addEventListener('keydown', handleTyping);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            sendBtn.addEventListener('click', sendMessage);
+            emojiBtn.addEventListener('click', toggleEmojiPicker);
+            attachBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileUpload);
+            newChatBtn.addEventListener('click', () => newChatModal.classList.remove('hidden'));
+            startNewChatBtn.addEventListener('click', () => newChatModal.classList.remove('hidden'));
+            newGroupBtn.addEventListener('click', () => newGroupModal.classList.remove('hidden'));
+            closeNewChatModal.addEventListener('click', () => newChatModal.classList.add('hidden'));
+            closeNewGroupModal.addEventListener('click', () => newGroupModal.classList.add('hidden'));
+            searchUsers.addEventListener('input', searchForUsers);
+            searchGroupUsers.addEventListener('input', searchForGroupUsers);
+            createGroupBtn.addEventListener('click', createGroup);
+            groupNameInput.addEventListener('input', validateGroupCreation);
+            chatInfoBtn.addEventListener('click', () => chatInfoSidebar.classList.remove('hidden'));
+            closeChatInfo.addEventListener('click', () => chatInfoSidebar.classList.add('hidden'));
+            darkModeToggle.addEventListener('click', toggleDarkMode);
+            profileBtn.addEventListener('click', () => profileDropdown.classList.toggle('hidden'));
+            
+            // Profile events
+            profileSettingsBtn.addEventListener('click', openProfileSettings);
+            logoutBtn.addEventListener('click', handleLogout);
+            closeProfileSettingsModal.addEventListener('click', () => profileSettingsModal.classList.add('hidden'));
+            changeAvatarBtn.addEventListener('click', () => avatarInput.click());
+            removeAvatarBtn.addEventListener('click', removeProfilePhoto);
+            avatarInput.addEventListener('change', handleProfilePhotoChange);
+            saveProfileBtn.addEventListener('click', saveProfileSettings);
+            
+            // Close modals when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!profileBtn.contains(e.target) && !profileDropdown.contains(e.target)) {
+                    profileDropdown.classList.add('hidden');
+                }
+                
+                if (!emojiBtn.contains(e.target) && !emojiPicker.contains(e.target)) {
+                    emojiPicker.style.display = 'none';
+                }
+            });
+            
+            // Sample emoji click handler (would be expanded with a real emoji picker library)
+            document.querySelectorAll('.emoji').forEach(emoji => {
+                emoji.addEventListener('click', () => {
+                    messageInput.value += emoji.textContent;
+                    messageInput.focus();
+                });
+            });
+        }
+        
+        // Check authentication state
+        function checkAuthState() {
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    authScreen.classList.add('hidden');
+                    chatScreen.classList.remove('hidden');
+                    loadUserProfile();
+                    loadChats();
+                    setupPresence();
+                    requestNotificationPermission();
+                } else {
+                    currentUser = null;
+                    authScreen.classList.remove('hidden');
+                    chatScreen.classList.add('hidden');
+                    switchAuthTab('login');
+                }
+            });
+        }
+        
+        // Switch between login and register tabs
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                loginTab.classList.add('text-blue-500', 'border-blue-500');
+                loginTab.classList.remove('text-gray-500', 'dark:text-gray-400');
+                registerTab.classList.remove('text-blue-500', 'border-blue-500');
+                registerTab.classList.add('text-gray-500', 'dark:text-gray-400');
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                resetPasswordForm.classList.add('hidden');
+            } else {
+                registerTab.classList.add('text-blue-500', 'border-blue-500');
+                registerTab.classList.remove('text-gray-500', 'dark:text-gray-400');
+                loginTab.classList.remove('text-blue-500', 'border-blue-500');
+                loginTab.classList.add('text-gray-500', 'dark:text-gray-400');
+                registerForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+                resetPasswordForm.classList.add('hidden');
+            }
+        }
+        
+        // Handle email/password login
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!email || !password) {
+                showNotification('Please enter both email and password', 'error');
+                return;
+            }
+            
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    showNotification('Logged in successfully');
+                    return db.collection('users').doc(userCredential.user.uid).update({
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        isOnline: true
+                    });
+                })
+                .catch(error => {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Login';
+                    
+                    let errorMessage = 'Login failed';
+                    switch (error.code) {
+                        case 'auth/invalid-email':
+                            errorMessage = 'Invalid email address';
+                            break;
+                        case 'auth/user-disabled':
+                            errorMessage = 'Account disabled';
+                            break;
+                        case 'auth/user-not-found':
+                            errorMessage = 'User not found';
+                            break;
+                        case 'auth/wrong-password':
+                            errorMessage = 'Incorrect password';
+                            break;
+                        default:
+                            errorMessage = error.message;
+                    }
+                    showNotification(errorMessage, 'error');
+                });
+        }
+        
+        // Handle Google login
+        function handleGoogleLogin() {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            googleLoginBtn.disabled = true;
+            googleLoginBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Logging in...';
+            
+            auth.signInWithPopup(provider)
+                .then((result) => {
+                    showNotification('Logged in with Google');
+                    
+                    // Check if user exists in Firestore
+                    return db.collection('users').doc(result.user.uid).get().then(doc => {
+                        if (!doc.exists) {
+                            // Create new user document if doesn't exist
+                            return db.collection('users').doc(result.user.uid).set({
+                                name: result.user.displayName,
+                                email: result.user.email,
+                                photoURL: result.user.photoURL,
+                                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                status: 'Hey there! I am using ChatApp',
+                                lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                                isOnline: true
+                            });
+                        }
+                    });
+                })
+                .catch(error => {
+                    googleLoginBtn.disabled = false;
+                    googleLoginBtn.innerHTML = '<i class="fab fa-google"></i> Login with Google';
+                    
+                    let errorMessage = 'Google login failed';
+                    if (error.code === 'auth/popup-closed-by-user') {
+                        errorMessage = 'Login popup was closed';
+                    }
+                    showNotification(errorMessage, 'error');
+                });
+        }
+        
+        // Handle registration
+        function handleRegister() {
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            
+            if (!name || !email || !password) {
+                showNotification('Please fill all fields', 'error');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showNotification('Password must be at least 6 characters', 'error');
+                return;
+            }
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Save additional user info
+                    return db.collection('users').doc(userCredential.user.uid).set({
+                        name: name,
+                        email: email,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'Hey there! I am using ChatApp',
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+                        isOnline: true
+                    });
+                })
+                .then(() => {
+                    showNotification('Account created successfully');
+                })
+                .catch(error => {
+                    showNotification(error.message, 'error');
+                });
+        }
+        
+        // Handle password reset
+        function handleResetPassword() {
+            const email = document.getElementById('reset-email').value;
+            
+            if (!email) {
+                showNotification('Please enter your email', 'error');
+                return;
+            }
+            
+            auth.sendPasswordResetEmail(email)
+                .then(() => {
+                    showNotification('Password reset email sent. Check your inbox.');
+                    resetPasswordForm.classList.add('hidden');
+                    loginForm.classList.remove('hidden');
+                })
+                .catch(error => {
+                    showNotification(error.message, 'error');
+                });
+        }
+        
+        // Load user profile
+        function loadUserProfile() {
+            db.collection('users').doc(currentUser.uid).get()
+                .then(doc => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        document.getElementById('profile-image').src = userData.photoURL || 'https://via.placeholder.com/40';
+                        
+                        // Set profile settings
+                        settingsName.value = userData.name || '';
+                        settingsEmail.value = userData.email || '';
+                        settingsAbout.value = userData.status || '';
+                    }
+                });
+        }
+        
+        // Load chats for the current user
+        function loadChats() {
+            // In a real app, we would query Firestore for the user's chats
+            // This is a simplified version with mock data
+            chatList.innerHTML = `
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <div class="relative mr-3">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="w-12 h-12 rounded-full">
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800 dark:text-white">Sarah Johnson</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Hey, how are you doing?</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">2 min</span>
+                            <span class="block w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center ml-auto mt-1">3</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <div class="relative mr-3">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" class="w-12 h-12 rounded-full">
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 rounded-full border-2 border-white dark:border-gray-800"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800 dark:text-white">Mike Peterson</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">See you tomorrow!</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">1 hr</span>
+                            <span class="block w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center ml-auto mt-1 hidden">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <div class="relative mr-3">
+                            <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="User" class="w-12 h-12 rounded-full">
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800 dark:text-white">Emily Wilson</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Thanks for the help!</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">5 hr</span>
+                            <span class="block w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center ml-auto mt-1 hidden">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <div class="relative mr-3">
+                            <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="User" class="w-12 h-12 rounded-full">
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-gray-400 rounded-full border-2 border-white dark:border-gray-800"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800 dark:text-white">David Kim</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Let me check and get back to you</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">Yesterday</span>
+                            <span class="block w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center ml-auto mt-1 hidden">0</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer">
+                        <div class="relative mr-3">
+                            <img src="https://randomuser.me/api/portraits/women/90.jpg" alt="User" class="w-12 h-12 rounded-full">
+                            <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800"></span>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-medium text-gray-800 dark:text-white">Study Group</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Alex: I'll bring the notes</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">2 days</span>
+                            <span class="block w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center ml-auto mt-1">5</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add click handlers to chat items
+            document.querySelectorAll('#chat-list > div').forEach(chatItem => {
+                chatItem.addEventListener('click', () => {
+                    // In a real app, we would load the actual chat data
+                    emptyChat.classList.add('hidden');
+                    activeChat.classList.remove('hidden');
+                    
+                    // Update chat header
+                    const name = chatItem.querySelector('h3').textContent;
+                    const avatar = chatItem.querySelector('img').src;
+                    const isOnline = chatItem.querySelector('span.bg-green-500') !== null;
+                    
+                    document.getElementById('chat-name').textContent = name;
+                    document.getElementById('chat-avatar').src = avatar;
+                    document.getElementById('online-status').className = isOnline ? 
+                        'absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white dark:border-gray-800' : 
+                        'absolute bottom-0 right-0 w-3 h-3 bg-gray-400 rounded-full border-2 border-white dark:border-gray-800';
+                    document.getElementById('chat-status').textContent = isOnline ? 'Online' : 'Offline';
+                    
+                    // Load messages for this chat (mock data)
+                    loadMessages();
+                });
+            });
+        }
+        
+        // Load messages for the current chat
+        function loadMessages() {
+            // In a real app, we would query Firestore for the chat messages
+            // This is a simplified version with mock data
+            messagesContainer.innerHTML = `
+                <!-- Received message -->
+                <div class="flex items-end">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="w-8 h-8 rounded-full mr-2">
+                    <div class="message-bubble received-message p-3 shadow-sm">
+                        <p class="text-gray-800 dark:text-white">Hey there! How are you doing?</p>
+                        <div class="flex justify-end items-center mt-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">10:30 AM</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">✓✓</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sent message -->
+                <div class="flex items-end justify-end">
+                    <div class="message-bubble sent-message p-3 shadow-sm">
+                        <p class="text-gray-800">I'm good, thanks! How about you?</p>
+                        <div class="flex justify-end items-center mt-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">10:32 AM</span>
+                            <span class="text-xs text-blue-500">✓✓</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Received message with image -->
+                <div class="flex items-end">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="w-8 h-8 rounded-full mr-2">
+                    <div class="message-bubble received-message p-2 shadow-sm">
+                        <img src="https://via.placeholder.com/300x200" alt="Image" class="rounded-lg w-48 h-32 object-cover">
+                        <div class="flex justify-end items-center mt-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">10:33 AM</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">✓✓</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Sent voice message -->
+                <div class="flex items-end justify-end">
+                    <div class="message-bubble sent-message p-3 shadow-sm">
+                        <div class="flex items-center">
+                            <button class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 mr-2">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: 60%"></div>
+                            </div>
+                            <span class="text-xs text-gray-500 ml-2">0:12</span>
+                        </div>
+                        <div class="flex justify-end items-center mt-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">10:35 AM</span>
+                            <span class="text-xs text-blue-500">✓✓</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Date divider -->
+                <div class="text-center my-4">
+                    <span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2 py-1 rounded-full">Yesterday</span>
+                </div>
+                
+                <!-- Group of received messages -->
+                <div class="flex items-end">
+                    <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" class="w-8 h-8 rounded-full mr-2">
+                    <div class="space-y-1">
+                        <div class="message-bubble received-message p-3 shadow-sm">
+                            <p class="text-gray-800 dark:text-white">Are we still meeting tomorrow?</p>
+                            <div class="flex justify-end items-center mt-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">4:22 PM</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">✓✓</span>
+                            </div>
+                        </div>
+                        <div class="message-bubble received-message p-3 shadow-sm">
+                            <p class="text-gray-800 dark:text-white">I was thinking we could go over the project details</p>
+                            <div class="flex justify-end items-center mt-1">
+                                <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">4:23 PM</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">✓✓</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Scroll to bottom of messages
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+        
+        // Handle typing indicator
+        function handleTyping() {
+            if (!isTyping) {
+                isTyping = true;
+                // In a real app, we would update Firestore to indicate the user is typing
+                // This would then be reflected in the UI for the other user
+            }
+            
+            // Reset the typing indicator after 3 seconds of inactivity
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                // In a real app, we would update Firestore to indicate the user stopped typing
+            }, 3000);
+        }
+        
+        // Send a message
+        function sendMessage() {
+            const messageText = messageInput.value.trim();
+            
+            if (!messageText) return;
+            
+            // In a real app, we would save the message to Firestore
+            // This is a simplified version that just adds it to the UI
+            
+            // Add message to UI
+            const messageElement = `
+                <div class="flex items-end justify-end">
+                    <div class="message-bubble sent-message p-3 shadow-sm">
+                        <p class="text-gray-800">${messageText}</p>
+                        <div class="flex justify-end items-center mt-1">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            <span class="text-xs text-gray-400">✓</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            messagesContainer.insertAdjacentHTML('beforeend', messageElement);
+            messageInput.value = '';
+            
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Simulate message delivery and read status
+            setTimeout(() => {
+                const checkmarks = document.querySelectorAll('#messages-container .sent-message .text-gray-400');
+                const lastCheckmark = checkmarks[checkmarks.length - 1];
+                lastCheckmark.textContent = '✓✓';
+                lastCheckmark.classList.remove('text-gray-400');
+                lastCheckmark.classList.add('text-gray-500', 'dark:text-gray-400');
+            }, 1000);
+            
+            setTimeout(() => {
+                const checkmarks = document.querySelectorAll('#messages-container .sent-message .text-gray-500');
+                const lastCheckmark = checkmarks[checkmarks.length - 1];
+                lastCheckmark.classList.remove('text-gray-500', 'dark:text-gray-400');
+                lastCheckmark.classList.add('text-blue-500');
+            }, 2000);
+        }
+        
+        // Handle file upload
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // In a real app, we would upload to Firebase Storage
+            // This is a simplified version that just displays a preview
+            
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                let messageElement;
+                
+                if (file.type.startsWith('image/')) {
+                    messageElement = `
+                        <div class="flex items-end justify-end">
+                            <div class="message-bubble sent-message p-2 shadow-sm">
+                                <img src="${event.target.result}" alt="Uploaded Image" class="rounded-lg w-48 h-32 object-cover">
+                                <div class="flex justify-end items-center mt-1">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span class="text-xs text-gray-400">✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (file.type.startsWith('video/')) {
+                    messageElement = `
+                        <div class="flex items-end justify-end">
+                            <div class="message-bubble sent-message p-2 shadow-sm">
+                                <video controls class="rounded-lg w-48 h-32 object-cover">
+                                    <source src="${event.target.result}" type="${file.type}">
+                                    Your browser does not support the video tag.
+                                </video>
+                                <div class="flex justify-end items-center mt-1">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span class="text-xs text-gray-400">✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else if (file.type.startsWith('audio/')) {
+                    messageElement = `
+                        <div class="flex items-end justify-end">
+                            <div class="message-bubble sent-message p-3 shadow-sm">
+                                <div class="flex items-center">
+                                    <button class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-500 mr-2">
+                                        <i class="fas fa-play"></i>
+                                    </button>
+                                    <div class="flex-1 bg-gray-200 rounded-full h-2">
+                                        <div class="bg-blue-500 h-2 rounded-full" style="width: 0%"></div>
+                                    </div>
+                                    <span class="text-xs text-gray-500 ml-2">0:00</span>
+                                </div>
+                                <div class="flex justify-end items-center mt-1">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span class="text-xs text-gray-400">✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // For other file types
+                    messageElement = `
+                        <div class="flex items-end justify-end">
+                            <div class="message-bubble sent-message p-3 shadow-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-file-alt text-2xl text-blue-500 mr-2"></i>
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-800 truncate">${file.name}</p>
+                                        <p class="text-xs text-gray-500">${(file.size / 1024).toFixed(1)} KB</p>
+                                    </div>
+                                    <a href="${event.target.result}" download="${file.name}" class="ml-4 text-blue-500 hover:text-blue-600">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                </div>
+                                <div class="flex justify-end items-center mt-1">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 mr-1">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    <span class="text-xs text-gray-400">✓</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                messagesContainer.insertAdjacentHTML('beforeend', messageElement);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Simulate message delivery and read status
+                setTimeout(() => {
+                    const checkmarks = document.querySelectorAll('#messages-container .sent-message .text-gray-400');
+                    const lastCheckmark = checkmarks[checkmarks.length - 1];
+                    lastCheckmark.textContent = '✓✓';
+                    lastCheckmark.classList.remove('text-gray-400');
+                    lastCheckmark.classList.add('text-gray-500', 'dark:text-gray-400');
+                }, 1000);
+                
+                setTimeout(() => {
+                    const checkmarks = document.querySelectorAll('#messages-container .sent-message .text-gray-500');
+                    const lastCheckmark = checkmarks[checkmarks.length - 1];
+                    lastCheckmark.classList.remove('text-gray-500', 'dark:text-gray-400');
+                    lastCheckmark.classList.add('text-blue-500');
+                }, 2000);
             };
-            document.getElementById('confirmModal').classList.remove('hidden');
-          });
-        });
-        
-        autoScrollChat('messages');
-      }, (err) => {
-        console.error('Messages onSnapshot error', err);
-        showNotification('error', 'Error loading messages');
-      });
-    }
-
-    // Escape HTML helper
-    function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[c]);
-    }
-
-    // ----- FRIEND REQUEST SYSTEM -----
-
-    // Send Friend Request
-    async function sendFriendRequest(targetUid) {
-      if (!currentUser) {
-        showNotification('error', 'Please login first');
-        return;
-      }
-      
-      if (targetUid === currentUser.uid) {
-        showNotification('error', "You can't send request to yourself!");
-        return;
-      }
-      
-      try {
-        const targetRef = doc(db, 'users', targetUid);
-        await updateDoc(targetRef, {
-          friendRequests: arrayUnion(currentUser.uid)
-        });
-        
-        showNotification('success', 'Friend request sent!');
-      } catch (err) {
-        console.error('Send friend request error', err);
-        showNotification('error', 'Failed to send friend request');
-      }
-    }
-
-    // Accept Friend Request
-    async function acceptFriendRequest(requesterUid) {
-      if (!currentUser) return;
-      
-      try {
-        const currentRef = doc(db, 'users', currentUser.uid);
-        const requesterRef = doc(db, 'users', requesterUid);
-        
-        await updateDoc(currentRef, {
-          friends: arrayUnion(requesterUid),
-          friendRequests: arrayRemove(requesterUid)
-        });
-        
-        await updateDoc(requesterRef, {
-          friends: arrayUnion(currentUser.uid)
-        });
-        
-        showNotification('success', 'Friend request accepted!');
-      } catch (err) {
-        console.error('Accept friend request error', err);
-        showNotification('error', 'Failed to accept friend request');
-      }
-    }
-
-    // Reject Friend Request
-    async function rejectFriendRequest(requesterUid) {
-      if (!currentUser) return;
-      
-      try {
-        const currentRef = doc(db, 'users', currentUser.uid);
-        await updateDoc(currentRef, {
-          friendRequests: arrayRemove(requesterUid)
-        });
-        
-        showNotification('info', 'Friend request rejected');
-      } catch (err) {
-        console.error('Reject friend request error', err);
-        showNotification('error', 'Failed to reject friend request');
-      }
-    }
-
-    // Listen to friend requests realtime
-    function listenToFriendRequests() {
-      if (!currentUser) return;
-      if (unsubscribeFriendRequests) unsubscribeFriendRequests();
-      
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFriendRequests = onSnapshot(userRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        const requests = data.friendRequests || [];
-        renderFriendRequests(requests);
-        renderMobileFriendRequests(requests);
-      });
-    }
-
-    // Render friend requests UI
-    async function renderFriendRequests(requestUids) {
-      const container = document.getElementById('friendRequests');
-      container.innerHTML = '';
-      
-      if (requestUids.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
-        document.getElementById('requestCount').textContent = '';
-        return;
-      }
-      
-      document.getElementById('requestCount').textContent = requestUids.length;
-      
-      for (const uid of requestUids) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (!userSnap.exists()) continue;
-        
-        const userData = userSnap.data();
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
-        
-        div.innerHTML = `
-          <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
-            <div>
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">wants to connect</div>
-            </div>
-          </div>
-          <div class="flex space-x-2">
-            <button class="acceptBtn bg-green-100 hover:bg-green-200 text-green-800 p-1 rounded-full">
-              <i class="fas fa-check text-sm"></i>
-            </button>
-            <button class="rejectBtn bg-red-100 hover:bg-red-200 text-red-800 p-1 rounded-full">
-              <i class="fas fa-times text-sm"></i>
-            </button>
-          </div>
-        `;
-        
-        div.querySelector('.acceptBtn').addEventListener('click', () => acceptFriendRequest(uid));
-        div.querySelector('.rejectBtn').addEventListener('click', () => rejectFriendRequest(uid));
-        
-        container.appendChild(div);
-      }
-    }
-
-    // Render mobile friend requests UI
-    async function renderMobileFriendRequests(requestUids) {
-      const container = document.getElementById('mobileFriendRequests');
-      container.innerHTML = '';
-      
-      if (requestUids.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-2">No friend requests</div>';
-        return;
-      }
-      
-      for (const uid of requestUids) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (!userSnap.exists()) continue;
-        
-        const userData = userSnap.data();
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
-        
-        div.innerHTML = `
-          <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-8 h-8 rounded-full">
-            <div>
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">wants to connect</div>
-            </div>
-          </div>
-          <div class="flex space-x-2">
-            <button class="acceptBtn bg-green-100 hover:bg-green-200 text-green-800 p-1 rounded-full">
-              <i class="fas fa-check text-xs"></i>
-            </button>
-            <button class="rejectBtn bg-red-100 hover:bg-red-200 text-red-800 p-1 rounded-full">
-              <i class="fas fa-times text-xs"></i>
-            </button>
-          </div>
-        `;
-        
-        div.querySelector('.acceptBtn').addEventListener('click', () => {
-          acceptFriendRequest(uid);
-          document.getElementById('mobileMenu').classList.add('hidden');
-          document.getElementById('mobileMenu').classList.remove('visible');
-          document.getElementById('overlay').classList.add('hidden');
-        });
-        
-        div.querySelector('.rejectBtn').addEventListener('click', () => {
-          rejectFriendRequest(uid);
-          document.getElementById('mobileMenu').classList.add('hidden');
-          document.getElementById('mobileMenu').classList.remove('visible');
-          document.getElementById('overlay').classList.add('hidden');
-        });
-        
-        container.appendChild(div);
-      }
-    }
-
-    // Load friends list UI
-    async function loadFriendsList() {
-      if (!currentUser) return;
-      
-      if (unsubscribeFriends) unsubscribeFriends();
-      
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFriends = onSnapshot(userRef, async (docSnap) => {
-        if (!docSnap.exists()) return;
-        
-        const data = docSnap.data();
-        const friends = data.friends || [];
-        const container = document.getElementById('friendsList');
-        const mobileContainer = document.getElementById('mobileFriendsList');
-        container.innerHTML = '';
-        mobileContainer.innerHTML = '';
-        
-        if (friends.length === 0) {
-          container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
-          mobileContainer.innerHTML = '<div class="text-gray-500 text-center py-2">No friends yet</div>';
-          document.getElementById('friendCount').textContent = '';
-          return;
+            
+            reader.readAsDataURL(file);
+            fileInput.value = ''; // Reset file input
         }
         
-        document.getElementById('friendCount').textContent = friends.length;
-        
-        // Get online status for friends
-        const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-        const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
-        const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
-        
-        for (const uid of friends) {
-          const userSnap = await getDoc(doc(db, 'users', uid));
-          if (!userSnap.exists()) continue;
-          
-          const userData = userSnap.data();
-          const isOnline = onlineUsers.includes(uid);
-          
-          // Main friends list item
-          const div = document.createElement('div');
-          div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
-          
-          div.innerHTML = `
-            <div class="relative">
-              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                    alt="photo" class="w-10 h-10 rounded-full">
-              <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
-            </div>
-            <div class="ml-3">
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
-            </div>
-          `;
-          
-          // Add click handler to start private chat
-          div.addEventListener('click', () => {
-            startPrivateChat(userData);
-            document.getElementById('friendsChatTab').click();
-          });
-          
-          container.appendChild(div);
-          
-          // Mobile friends list item
-          const mobileDiv = document.createElement('div');
-          mobileDiv.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
-          
-          mobileDiv.innerHTML = `
-            <div class="relative">
-              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                    alt="photo" class="w-8 h-8 rounded-full">
-              <span class="absolute bottom-0 right-0 w-2 h-2 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
-            </div>
-            <div class="ml-3">
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${isOnline ? 'Online' : 'Offline'}</div>
-            </div>
-          `;
-          
-          mobileDiv.addEventListener('click', () => {
-            startPrivateChat(userData);
-            document.getElementById('friendsChatTab').click();
-            document.getElementById('mobileMenu').classList.add('hidden');
-            document.getElementById('mobileMenu').classList.remove('visible');
-            document.getElementById('overlay').classList.add('hidden');
-          });
-          
-          mobileContainer.appendChild(mobileDiv);
-        }
-      });
-    }
-
-    function clearFriendRequestsUI() {
-      document.getElementById('friendRequests').innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
-      document.getElementById('mobileFriendRequests').innerHTML = '<div class="text-gray-500 text-center py-2">No friend requests</div>';
-      document.getElementById('requestCount').textContent = '';
-    }
-
-    function clearFriendsListUI() {
-      document.getElementById('friendsList').innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
-      document.getElementById('mobileFriendsList').innerHTML = '<div class="text-gray-500 text-center py-2">No friends yet</div>';
-      document.getElementById('friendCount').textContent = '';
-    }
-
-    // Search students by name
-    document.getElementById('searchInput').addEventListener('input', debounce(async (e) => {
-      const searchText = e.target.value.trim();
-      const resultsDiv = document.getElementById('searchResults');
-      resultsDiv.innerHTML = '';
-      
-      if (searchText.length < 2) return; // minimum 2 characters
-      
-      const q = query(
-        collection(db, 'users'), 
-        where('name', '>=', searchText),
-        where('name', '<=', searchText + '\uf8ff')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (!currentUser) {
-        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">Please login to send friend requests</div>';
-        return;
-      }
-      
-      // Get current user's friend list and requests
-      const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const currentUserData = currentUserSnap.data() || {};
-      const friends = currentUserData.friends || [];
-      const incomingRequests = currentUserData.friendRequests || [];
-      
-      if (querySnapshot.empty) {
-        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">No users found</div>';
-        return;
-      }
-      
-      for (const docSnap of querySnapshot.docs) {
-        const user = docSnap.data();
-        if (user.uid === currentUser.uid) continue; // skip yourself
-        
-        const alreadyFriend = friends.includes(user.uid);
-        const requestSent = incomingRequests.includes(user.uid);
-        
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
-        
-        div.innerHTML = `
-          <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
-            <div>
-              <div class="font-medium">${escapeHtml(user.name || user.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${user.email || ''}</div>
-            </div>
-          </div>
-          <button ${alreadyFriend || requestSent ? 'disabled' : ''}
-                  class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
-            ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add'}
-          </button>
-        `;
-        
-        if (!alreadyFriend && !requestSent) {
-          div.querySelector('.sendRequestBtn').addEventListener('click', () => {
-            sendFriendRequest(user.uid);
-            div.querySelector('.sendRequestBtn').disabled = true;
-            div.querySelector('.sendRequestBtn').className = 'sendRequestBtn text-sm bg-indigo-100 text-indigo-600 py-1 px-3 rounded-lg';
-            div.querySelector('.sendRequestBtn').textContent = 'Requested';
-          });
+        // Toggle emoji picker
+        function toggleEmojiPicker() {
+            if (emojiPicker.style.display === 'block') {
+                emojiPicker.style.display = 'none';
+            } else {
+                emojiPicker.style.display = 'block';
+            }
         }
         
-        resultsDiv.appendChild(div);
-      }
-    }, 300));
-
-    // Debounce function to limit search frequency
-    function debounce(func, wait) {
-      let timeout;
-      return function(...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-      };
-    }
-  </script>
+        // Search for users to start a new chat
+        function searchForUsers() {
+            const query = searchUsers.value.trim().toLowerCase();
+            
+            // In a real app, we would query Firestore for matching users
+            // This is a simplified version with mock data
+            if (query === '') {
+                usersList.innerHTML = '<div class="p-4 text-center text-gray-500 dark:text-gray-400">Search for users to start a chat</div>';
+                return;
+            }
+            
+            // Mock search results
+            const mockUsers = [
+                { id: '1', name: 'John Doe', email: 'john@example.com', avatar: 'https://randomuser.me/api/portraits/men/1.jpg', status: 'Available' },
+                { id: '2', name: 'Jane Smith', email: 'jane@example.com', avatar: 'https://randomuser.me/api/portraits/women/1.jpg', status: 'At work' },
+                { id: '3', name: 'Bob Johnson', email: 'bob@example.com', avatar: 'https://randomuser.me/api/portraits/men/2.jpg', status: 'In a meeting' },
+                { id: '4', name: 'Alice Williams', email: 'alice@example.com', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', status: 'Available' },
+            ];
+            
+            const filteredUsers = mockUsers.filter(user => 
+                user.name.toLowerCase().includes(query) || 
+                user.email.toLowerCase().includes(query)
+            );
+            
+            if (filteredUsers.length === 0) {
+                usersList.innerHTML = '<div class="p-4 text-center text-gray-500 dark:text-gray-400">No users found</div>';
+                return;
+            }
+            
+            usersList.innerHTML = filteredUsers.map(user => `
+                <div class="border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center p-3 hover:bg
 </body>
 </html>
