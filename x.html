@@ -24,18 +24,29 @@
       from { transform: translateY(10px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    #messages::-webkit-scrollbar {
+    #messages::-webkit-scrollbar,
+    #friendsMessages::-webkit-scrollbar {
       width: 6px;
     }
-    #messages::-webkit-scrollbar-track {
+    #messages::-webkit-scrollbar-track,
+    #friendsMessages::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
-    #messages::-webkit-scrollbar-thumb {
+    #messages::-webkit-scrollbar-thumb,
+    #friendsMessages::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 3px;
     }
-    #messages::-webkit-scrollbar-thumb:hover {
+    #messages::-webkit-scrollbar-thumb:hover,
+    #friendsMessages::-webkit-scrollbar-thumb:hover {
       background: #555;
+    }
+    .chat-tab {
+      transition: all 0.3s ease;
+    }
+    .chat-tab.active {
+      background-color: #4f46e5;
+      color: white;
     }
   </style>
 </head>
@@ -65,8 +76,8 @@
           <h3 class="font-semibold text-lg mb-3 text-gray-800">
             <i class="fas fa-search mr-2 text-indigo-600"></i>Find Study Partners
           </h3>
-          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" 
-                 class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)"
+                  class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
           <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
         </div>
 
@@ -100,26 +111,41 @@
       <!-- Right Column - Chat Area -->
       <div id="chatArea" class="lg:col-span-2 hidden">
         <div class="bg-white rounded-lg shadow h-full flex flex-col">
-          <!-- Chat Header -->
-          <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-            <div class="flex space-x-4">
-              <button id="worldTab" class="tabBtn font-semibold text-lg text-indigo-600 border-b-2 border-indigo-600">World Chat</button>
-              <button id="friendsTab" class="tabBtn font-semibold text-lg text-gray-600">Friends Chat</button>
+          <!-- Chat Header with Tabs -->
+          <div class="p-4 border-b border-gray-200">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="font-semibold text-lg text-gray-800">
+                <i class="fas fa-comments mr-2 text-indigo-600"></i>Study Chat
+              </h2>
+              <div id="onlineCount" class="flex items-center text-sm text-gray-600">
+                <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+                <span id="onlineUsers">0</span> online
+              </div>
             </div>
-            <div id="onlineCount" class="flex items-center text-sm text-gray-600">
-              <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-              <span id="onlineUsers">0</span> online
+            <div class="flex border-b border-gray-200">
+              <button id="worldChatTab" class="chat-tab active flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
+                <i class="fas fa-globe mr-1"></i> World Chat
+              </button>
+              <button id="friendsChatTab" class="chat-tab flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
+                <i class="fas fa-user-friends mr-1"></i> Friends Chat
+              </button>
             </div>
           </div>
-          
-          <!-- Messages -->
-          <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50"></div>
-          
+
+          <!-- Messages Container -->
+          <div class="flex-1 relative">
+            <!-- World Chat Messages -->
+            <div id="messages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50"></div>
+            
+            <!-- Friends Chat Messages -->
+            <div id="friendsMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
+          </div>
+
           <!-- Message Input -->
           <div class="p-4 border-t border-gray-200">
             <div class="flex space-x-2">
-              <input id="msgInput" type="text" placeholder="Type a message..." 
-                     class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <input id="msgInput" type="text" placeholder="Type a message..."
+                      class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
               <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
                 <i class="fas fa-paper-plane"></i>
               </button>
@@ -157,12 +183,13 @@
     const db = getFirestore(app);
 
     let currentUser = null;
-    let currentChatType = 'world';
-    let friends = [];
-    let friendRequestsList = [];
     let unsubscribeMessages = null;
-    let unsubscribeUser = null;
+    let unsubscribeFriendRequests = null;
     let unsubscribeOnlineUsers = null;
+    let unsubscribeFriends = null;
+    let unsubscribeFriendsMessages = null;
+    let currentChatTab = 'world'; // 'world' or 'friends'
+    let currentPartner = null;
 
     // Notification system
     function showNotification(type, message) {
@@ -202,10 +229,12 @@
       }, 5000);
     }
 
-    // Function to scroll chat to bottom
-    function scrollToBottom() {
-      const messagesDiv = document.getElementById('messages');
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    // Auto-scroll chat to bottom
+    function autoScrollChat(containerId) {
+      const container = document.getElementById(containerId);
+      if (container) {
+        container.scrollTop = container.scrollHeight;
+      }
     }
 
     // Track online users
@@ -229,17 +258,7 @@
       // Create listener for online users
       const onlineUsersQuery = query(collection(db, 'status'), where('state', '==', 'online'));
       unsubscribeOnlineUsers = onSnapshot(onlineUsersQuery, (snapshot) => {
-        let onlineCount = 0;
-        if (currentChatType === 'world') {
-          onlineCount = snapshot.size;
-        } else {
-          snapshot.forEach((doc) => {
-            if (doc.id === currentUser.uid || friends.includes(doc.id)) {
-              onlineCount++;
-            }
-          });
-        }
-        document.getElementById('onlineUsers').textContent = onlineCount;
+        document.getElementById('onlineUsers').textContent = snapshot.size;
       });
       
       // Set user as offline when they disconnect
@@ -272,8 +291,8 @@
         return;
       }
       ui.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}" 
-             alt="photo" class="w-8 h-8 rounded-full">
+        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
+              alt="photo" class="w-8 h-8 rounded-full">
         <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
         <button id="logoutBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg ml-2">
           <i class="fas fa-sign-out-alt mr-1"></i>Logout
@@ -314,15 +333,9 @@
         await saveUserProfile(user);
         showUser(user);
         document.getElementById('chatArea').classList.remove('hidden');
-
-        // Load from local storage initially
-        friends = JSON.parse(localStorage.getItem('p0pi_friends')) || [];
-        friendRequestsList = JSON.parse(localStorage.getItem('p0pi_friend_requests')) || [];
-        renderFriendsList(friends);
-        renderFriendRequests(friendRequestsList);
-
-        listenToUserData();
-        loadChat();
+        loadMessages();
+        listenToFriendRequests();
+        loadFriendsList();
         trackOnlineStatus();
       } else {
         currentUser = null;
@@ -331,10 +344,46 @@
         clearFriendRequestsUI();
         clearFriendsListUI();
         if (unsubscribeMessages) unsubscribeMessages();
-        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeFriendRequests) unsubscribeFriendRequests();
         if (unsubscribeOnlineUsers) unsubscribeOnlineUsers();
+        if (unsubscribeFriends) unsubscribeFriends();
+        if (unsubscribeFriendsMessages) unsubscribeFriendsMessages();
       }
     });
+
+    // Chat tab switching
+    document.getElementById('worldChatTab').addEventListener('click', () => {
+      currentChatTab = 'world';
+      document.getElementById('messages').classList.remove('hidden');
+      document.getElementById('friendsMessages').classList.add('hidden');
+      document.getElementById('worldChatTab').classList.add('active');
+      document.getElementById('friendsChatTab').classList.remove('active');
+      updateChatHeader();
+      autoScrollChat('messages');
+    });
+
+    document.getElementById('friendsChatTab').addEventListener('click', () => {
+      currentChatTab = 'friends';
+      document.getElementById('messages').classList.add('hidden');
+      document.getElementById('friendsMessages').classList.remove('hidden');
+      document.getElementById('worldChatTab').classList.remove('active');
+      document.getElementById('friendsChatTab').classList.add('active');
+      updateChatHeader();
+      loadFriendsMessages();
+      autoScrollChat('friendsMessages');
+    });
+
+    // Update chat header based on tab and partner
+    function updateChatHeader() {
+      const h2 = document.querySelector('#chatArea .p-4.border-b h2');
+      if (currentChatTab === 'world') {
+        h2.innerHTML = '<i class="fas fa-comments mr-2 text-indigo-600"></i>Study Chat';
+      } else if (currentPartner) {
+        h2.innerHTML = '<i class="fas fa-comments mr-2 text-indigo-600"></i>Chat with ' + escapeHtml(currentPartner.name);
+      } else {
+        h2.innerHTML = '<i class="fas fa-comments mr-2 text-indigo-600"></i>Friends Chat';
+      }
+    }
 
     // Send chat message
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
@@ -352,15 +401,24 @@
       const text = textEl.value.trim();
       if (!text) return;
       
+      const msgData = {
+        text,
+        name: currentUser.displayName || currentUser.email || 'Anonymous',
+        uid: currentUser.uid,
+        photo: currentUser.photoURL || '',
+        timestamp: serverTimestamp()
+      };
+
       try {
-        const collectionName = currentChatType === 'world' ? 'messages' : 'friends_messages';
-        await addDoc(collection(db, collectionName), {
-          text,
-          name: currentUser.displayName || currentUser.email || 'Anonymous',
-          uid: currentUser.uid,
-          photo: currentUser.photoURL || '',
-          timestamp: serverTimestamp()
-        });
+        if (currentChatTab === 'world') {
+          await addDoc(collection(db, 'messages'), msgData);
+        } else if (currentChatTab === 'friends' && currentPartner) {
+          const convId = [currentUser.uid, currentPartner.uid].sort().join('_');
+          await addDoc(collection(db, `conversations/${convId}/messages`), msgData);
+        } else {
+          showNotification('info', 'Please select a friend to chat');
+          return;
+        }
         textEl.value = '';
       } catch (err) {
         console.error('Send message error', err);
@@ -369,19 +427,15 @@
     }
 
     // Load chat messages realtime
-    function loadChat() {
+    function loadMessages() {
       if (unsubscribeMessages) unsubscribeMessages();
-      const collectionName = currentChatType === 'world' ? 'messages' : 'friends_messages';
-      const q = query(collection(db, collectionName), orderBy('timestamp'));
+      const q = query(collection(db, 'messages'), orderBy('timestamp'));
       unsubscribeMessages = onSnapshot(q, (snapshot) => {
         const messagesDiv = document.getElementById('messages');
         messagesDiv.innerHTML = '';
         
         snapshot.forEach((snapDoc) => {
           const msg = snapDoc.data();
-          if (currentChatType === 'friends' && msg.uid !== currentUser.uid && !friends.includes(msg.uid)) {
-            return; // Skip messages not from friends or self in friends chat
-          }
           const el = document.createElement('div');
           
           // Check if message is from current user
@@ -391,13 +445,13 @@
           el.classList.add('message-enter');
           
           const time = msg.timestamp && msg.timestamp.toDate ? 
-            msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+             msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
           
           el.innerHTML = `
             <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
               ${!isCurrentUser ? `
-                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
-                     alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
+                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
+                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
               ` : ''}
               <div>
                 <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
@@ -411,10 +465,53 @@
           
           messagesDiv.appendChild(el);
         });
-        scrollToBottom();
+        autoScrollChat('messages');
       }, (err) => {
         console.error('Messages onSnapshot error', err);
         showNotification('error', 'Error loading messages');
+      });
+    }
+
+    // Load friends chat messages realtime
+    function loadFriendsMessages() {
+      if (unsubscribeFriendsMessages) unsubscribeFriendsMessages();
+      if (!currentPartner) {
+        document.getElementById('friendsMessages').innerHTML = '<div class="text-gray-500 text-center py-4">Select a friend to start chatting</div>';
+        return;
+      }
+      const convId = [currentUser.uid, currentPartner.uid].sort().join('_');
+      const q = query(collection(db, `conversations/${convId}/messages`), orderBy('timestamp'));
+      unsubscribeFriendsMessages = onSnapshot(q, (snapshot) => {
+        const messagesDiv = document.getElementById('friendsMessages');
+        messagesDiv.innerHTML = '';
+        snapshot.forEach((snapDoc) => {
+          const msg = snapDoc.data();
+          const el = document.createElement('div');
+          const isCurrentUser = msg.uid === currentUser.uid;
+          el.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+          el.classList.add('message-enter');
+          const time = msg.timestamp?.toDate()?.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || '';
+          el.innerHTML = `
+            <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
+              ${!isCurrentUser ? `
+                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
+                      alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
+              ` : ''}
+              <div>
+                <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
+                  ${!isCurrentUser ? `<div class="font-semibold text-sm text-gray-700">${escapeHtml(msg.name || 'Unknown')}</div>` : ''}
+                  <div class="text-sm">${escapeHtml(msg.text || '')}</div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}">${time}</div>
+              </div>
+            </div>
+          `;
+          messagesDiv.appendChild(el);
+        });
+        autoScrollChat('friendsMessages');
+      }, (err) => {
+        console.error('Friends messages onSnapshot error', err);
+        showNotification('error', 'Error loading private messages');
       });
     }
 
@@ -427,6 +524,22 @@
     }
 
     // ----- FRIEND REQUEST SYSTEM -----
+
+    // Save friend request to local storage
+    function saveFriendRequestToLocal(requesterUid, targetUid) {
+      const requests = JSON.parse(localStorage.getItem('friendRequests') || '[]');
+      requests.push({
+        requester: requesterUid,
+        target: targetUid,
+        timestamp: new Date().toISOString()
+      });
+      localStorage.setItem('friendRequests', JSON.stringify(requests));
+    }
+
+    // Get friend requests from local storage
+    function getFriendRequestsFromLocal() {
+      return JSON.parse(localStorage.getItem('friendRequests') || '[]');
+    }
 
     // Send Friend Request
     async function sendFriendRequest(targetUid) {
@@ -445,6 +558,9 @@
         await updateDoc(targetRef, {
           friendRequests: arrayUnion(currentUser.uid)
         });
+        
+        // Save to local storage
+        saveFriendRequestToLocal(currentUser.uid, targetUid);
         
         showNotification('success', 'Friend request sent!');
       } catch (err) {
@@ -494,21 +610,17 @@
       }
     }
 
-    // Listen to user data (friends and requests) realtime
-    function listenToUserData() {
+    // Listen to friend requests realtime
+    function listenToFriendRequests() {
       if (!currentUser) return;
-      if (unsubscribeUser) unsubscribeUser();
+      if (unsubscribeFriendRequests) unsubscribeFriendRequests();
       
       const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeUser = onSnapshot(userRef, async (docSnap) => {
+      unsubscribeFriendRequests = onSnapshot(userRef, (docSnap) => {
         if (!docSnap.exists()) return;
         const data = docSnap.data();
-        friends = data.friends || [];
-        friendRequestsList = data.friendRequests || [];
-        localStorage.setItem('p0pi_friends', JSON.stringify(friends));
-        localStorage.setItem('p0pi_friend_requests', JSON.stringify(friendRequestsList));
-        renderFriendRequests(friendRequestsList);
-        await renderFriendsList(friends);
+        const requests = data.friendRequests || [];
+        renderFriendRequests(requests);
       });
     }
 
@@ -535,8 +647,8 @@
         
         div.innerHTML = `
           <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
-                 alt="photo" class="w-10 h-10 rounded-full">
+            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
+                  alt="photo" class="w-10 h-10 rounded-full">
             <div>
               <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
               <div class="text-xs text-gray-500">wants to connect</div>
@@ -559,55 +671,72 @@
       }
     }
 
-    // Render friends list UI
-    async function renderFriendsList(friendsUids) {
-      const container = document.getElementById('friendsList');
-      container.innerHTML = '';
+    // Load friends list UI
+    async function loadFriendsList() {
+      if (!currentUser) return;
       
-      if (friendsUids.length === 0) {
-        container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
-        document.getElementById('friendCount').textContent = '';
-        return;
-      }
+      if (unsubscribeFriends) unsubscribeFriends();
       
-      document.getElementById('friendCount').textContent = friendsUids.length;
-      
-      // Get online status for friends
-      const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-      const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
-      const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
-      
-      for (const uid of friendsUids) {
-        const userSnap = await getDoc(doc(db, 'users', uid));
-        if (!userSnap.exists()) continue;
+      const userRef = doc(db, 'users', currentUser.uid);
+      unsubscribeFriends = onSnapshot(userRef, async (docSnap) => {
+        if (!docSnap.exists()) return;
         
-        const userData = userSnap.data();
-        const isOnline = onlineUsers.includes(uid);
+        const data = docSnap.data();
+        const friends = data.friends || [];
+        const container = document.getElementById('friendsList');
+        container.innerHTML = '';
         
-        const div = document.createElement('div');
-        div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
+        if (friends.length === 0) {
+          container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
+          document.getElementById('friendCount').textContent = '';
+          return;
+        }
         
-        div.innerHTML = `
-          <div class="relative">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
-                 alt="photo" class="w-10 h-10 rounded-full">
-            <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
-          </div>
-          <div class="ml-3">
-            <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-            <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
-          </div>
-        `;
+        document.getElementById('friendCount').textContent = friends.length;
         
-        container.appendChild(div);
-      }
+        // Get online status for friends
+        const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
+        const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
+        const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
+        
+        for (const uid of friends) {
+          const userSnap = await getDoc(doc(db, 'users', uid));
+          if (!userSnap.exists()) continue;
+          
+          const userData = userSnap.data();
+          const isOnline = onlineUsers.includes(uid);
+          
+          const div = document.createElement('div');
+          div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
+          
+          div.innerHTML = `
+            <div class="relative">
+              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
+                    alt="photo" class="w-10 h-10 rounded-full">
+              <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
+            </div>
+            <div class="ml-3">
+              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
+              <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
+            </div>
+          `;
+          
+          // Add click handler to start private chat
+          div.addEventListener('click', () => {
+            currentPartner = {uid: uid, name: userData.name || userData.email || 'User', photo: userData.photo || ''};
+            document.getElementById('friendsChatTab').click();
+          });
+          
+          container.appendChild(div);
+        }
+      });
     }
 
     function clearFriendRequestsUI() {
       document.getElementById('friendRequests').innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
       document.getElementById('requestCount').textContent = '';
     }
-    
+
     function clearFriendsListUI() {
       document.getElementById('friendsList').innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
       document.getElementById('friendCount').textContent = '';
@@ -623,7 +752,7 @@
       
       const q = query(
         collection(db, 'users'), 
-        where('name', '>=', searchText), 
+        where('name', '>=', searchText),
         where('name', '<=', searchText + '\uf8ff')
       );
       
@@ -657,14 +786,14 @@
         
         div.innerHTML = `
           <div class="flex items-center space-x-3">
-            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
-                 alt="photo" class="w-10 h-10 rounded-full">
+            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
+                  alt="photo" class="w-10 h-10 rounded-full">
             <div>
               <div class="font-medium">${escapeHtml(user.name || user.email || 'User')}</div>
               <div class="text-xs text-gray-500">${user.email || ''}</div>
             </div>
           </div>
-          <button ${alreadyFriend || requestSent ? 'disabled' : ''} 
+          <button ${alreadyFriend || requestSent ? 'disabled' : ''}
                   class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
             ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add'}
           </button>
@@ -690,35 +819,6 @@
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(this, args), wait);
       };
-    }
-
-    // Tab switching
-    document.getElementById('worldTab').addEventListener('click', () => {
-      currentChatType = 'world';
-      updateTabs();
-      loadChat();
-    });
-
-    document.getElementById('friendsTab').addEventListener('click', () => {
-      currentChatType = 'friends';
-      updateTabs();
-      loadChat();
-    });
-
-    function updateTabs() {
-      const worldTab = document.getElementById('worldTab');
-      const friendsTab = document.getElementById('friendsTab');
-      if (currentChatType === 'world') {
-        worldTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
-        worldTab.classList.remove('text-gray-600');
-        friendsTab.classList.add('text-gray-600');
-        friendsTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
-      } else {
-        friendsTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
-        friendsTab.classList.remove('text-gray-600');
-        worldTab.classList.add('text-gray-600');
-        worldTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
-      }
     }
   </script>
 </body>
