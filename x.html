@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>P0PI Chat</title>
+  <title>P0PI</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -24,381 +24,128 @@
       from { transform: translateY(10px); opacity: 0; }
       to { transform: translateY(0); opacity: 1; }
     }
-    #messages::-webkit-scrollbar,
-    #friendsList::-webkit-scrollbar,
-    #friendRequests::-webkit-scrollbar,
-    #searchResults::-webkit-scrollbar {
+    #messages::-webkit-scrollbar {
       width: 6px;
     }
-    #messages::-webkit-scrollbar-track,
-    #friendsList::-webkit-scrollbar-track,
-    #friendRequests::-webkit-scrollbar-track,
-    #searchResults::-webkit-scrollbar-track {
+    #messages::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
-    #messages::-webkit-scrollbar-thumb,
-    #friendsList::-webkit-scrollbar-thumb,
-    #friendRequests::-webkit-scrollbar-thumb,
-    #searchResults::-webkit-scrollbar-thumb {
+    #messages::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 3px;
     }
-    #messages::-webkit-scrollbar-thumb:hover,
-    #friendsList::-webkit-scrollbar-thumb:hover,
-    #friendRequests::-webkit-scrollbar-thumb:hover,
-    #searchResults::-webkit-scrollbar-thumb:hover {
+    #messages::-webkit-scrollbar-thumb:hover {
       background: #555;
-    }
-    .active-tab {
-      background-color: #e5e7eb;
-      font-weight: 600;
-    }
-    .chat-bubble {
-      border-radius: 18px;
-      max-width: 80%;
-    }
-    .chat-bubble.sent {
-      background-color: #4f46e5;
-      color: white;
-    }
-    .chat-bubble.received {
-      background-color: #f3f4f6;
-      color: #111827;
-    }
-    .message-menu {
-      display: none;
-      position: absolute;
-      right: 0;
-      top: 0;
-      background: white;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
-      z-index: 10;
-    }
-    .message-menu.show {
-      display: block;
-    }
-    .profile-pic {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .sidebar {
-      transition: all 0.3s ease;
-    }
-    .sidebar-hidden {
-      transform: translateX(-100%);
-      opacity: 0;
-      width: 0;
-      padding: 0;
-      margin: 0;
-      border: none;
-    }
-    .chat-container {
-      transition: all 0.3s ease;
-    }
-    .chat-expanded {
-      width: 100%;
-    }
-    .video-call-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      z-index: 100;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-    }
-    .local-video {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      width: 200px;
-      height: 150px;
-      background: black;
-      border-radius: 8px;
-      z-index: 101;
-    }
-    .remote-video {
-      width: 80%;
-      height: 80%;
-      background: black;
-      border-radius: 8px;
-    }
-    .call-controls {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 20px;
-      z-index: 101;
-    }
-    .call-btn {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      cursor: pointer;
-    }
-    .end-call {
-      background: #ef4444;
-      color: white;
-    }
-    .mute-call {
-      background: #4b5563;
-      color: white;
-    }
-    .video-toggle {
-      background: #4b5563;
-      color: white;
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex">
-  <!-- Sidebar Navigation -->
-  <div id="sidebar" class="sidebar bg-white w-64 md:w-80 h-screen flex flex-col border-r border-gray-200">
-    <!-- User Profile Header -->
-    <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <img id="userProfilePic" src="https://www.gravatar.com/avatar/?d=mp" alt="Profile" class="profile-pic">
-        <div>
-          <div id="userDisplayName" class="font-semibold">Guest</div>
-          <div id="userStatus" class="text-xs text-gray-500">Offline</div>
+<body class="bg-gray-50 min-h-screen p-4 md:p-6">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <header class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">
+        <i class="fas fa-graduation-cap mr-2"></i>P0PI
+      </h1>
+      <div id="userInfo" class="flex items-center space-x-2"></div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Left Column - Search and Friends -->
+      <div class="lg:col-span-1 space-y-6">
+        <!-- Login Button -->
+        <div id="controls" class="bg-white p-4 rounded-lg shadow">
+          <button id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
+            <i class="fab fa-google mr-2"></i> Login with Google
+          </button>
         </div>
-      </div>
-      <button id="menuToggle" class="text-gray-500 hover:text-gray-700">
-        <i class="fas fa-bars"></i>
-      </button>
-    </div>
 
-    <!-- Search Bar -->
-    <div class="p-3 border-b border-gray-200">
-      <div class="relative">
-        <input id="searchInput" type="text" placeholder="Search or start new chat" 
-               class="w-full py-2 px-4 pl-10 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
-        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
-      </div>
-    </div>
+        <!-- Search Section -->
+        <div class="bg-white p-4 rounded-lg shadow">
+          <h3 class="font-semibold text-lg mb-3 text-gray-800">
+            <i class="fas fa-search mr-2 text-indigo-600"></i>Find Study Partners
+          </h3>
+          <input type="text" id="searchInput" placeholder="Search students by name (min 2 chars)" 
+                 class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+          <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
+        </div>
 
-    <!-- Navigation Tabs -->
-    <div class="flex border-b border-gray-200">
-      <button id="homeTab" class="flex-1 py-3 text-center text-sm font-medium active-tab">
-        <i class="fas fa-home mr-1"></i> Home
-      </button>
-      <button id="friendsTab" class="flex-1 py-3 text-center text-sm font-medium">
-        <i class="fas fa-user-friends mr-1"></i> Friends
-      </button>
-      <button id="chatTab" class="flex-1 py-3 text-center text-sm font-medium">
-        <i class="fas fa-comment-dots mr-1"></i> Chat
-      </button>
-      <button id="settingsTab" class="flex-1 py-3 text-center text-sm font-medium">
-        <i class="fas fa-cog mr-1"></i> Settings
-      </button>
-    </div>
-
-    <!-- Tab Content -->
-    <div class="flex-1 overflow-y-auto">
-      <!-- Home Content -->
-      <div id="homeContent" class="p-4">
-        <div class="mb-6">
-          <h3 class="font-semibold text-lg mb-3">Friend Requests</h3>
+        <!-- Friend Requests -->
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-semibold text-lg text-gray-800">
+              <i class="fas fa-user-clock mr-2 text-indigo-600"></i>Friend Requests
+            </h3>
+            <span id="requestCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
+          </div>
           <div id="friendRequests" class="space-y-2 max-h-60 overflow-y-auto">
             <div class="text-gray-500 text-center py-4">No friend requests</div>
           </div>
         </div>
-        <div>
-          <h3 class="font-semibold text-lg mb-3">Recent Chats</h3>
-          <div id="recentChats" class="space-y-2">
-            <div class="text-gray-500 text-center py-4">No recent chats</div>
+
+        <!-- Friends List -->
+        <div class="bg-white p-4 rounded-lg shadow">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-semibold text-lg text-gray-800">
+              <i class="fas fa-user-friends mr-2 text-indigo-600"></i>Friends List
+            </h3>
+            <span id="friendCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
+          </div>
+          <div id="friendsList" class="space-y-2 max-h-60 overflow-y-auto">
+            <div class="text-gray-500 text-center py-4">No friends yet</div>
           </div>
         </div>
       </div>
 
-      <!-- Friends Content -->
-      <div id="friendsContent" class="p-4 hidden">
-        <div class="mb-4">
-          <input type="text" id="friendsSearch" placeholder="Search friends" 
-                 class="w-full py-2 px-4 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
-        </div>
-        <div id="friendsList" class="space-y-2">
-          <div class="text-gray-500 text-center py-4">No friends yet</div>
-        </div>
-      </div>
-
-      <!-- Chat Content -->
-      <div id="chatContent" class="p-4 hidden">
-        <div class="mb-4">
-          <input type="text" id="chatSearch" placeholder="Search messages" 
-                 class="w-full py-2 px-4 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white">
-        </div>
-        <div id="chatContacts" class="space-y-2">
-          <div class="text-gray-500 text-center py-4">No chat contacts</div>
-        </div>
-      </div>
-
-      <!-- Settings Content -->
-      <div id="settingsContent" class="p-4 hidden">
-        <div class="mb-6">
-          <h3 class="font-semibold text-lg mb-3">Profile Settings</h3>
-          <div class="flex items-center space-x-4 mb-4">
-            <img id="settingsProfilePic" src="https://www.gravatar.com/avatar/?d=mp" alt="Profile" class="profile-pic">
-            <button id="changeProfilePicBtn" class="text-sm bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-3 rounded-lg">
-              Change Photo
-            </button>
-            <input type="file" id="profilePicInput" accept="image/*" class="hidden">
-          </div>
-          <div class="space-y-3">
-            <div>
-              <label for="displayNameInput" class="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-              <input type="text" id="displayNameInput" 
-                     class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+      <!-- Right Column - Chat Area -->
+      <div id="chatArea" class="lg:col-span-2 hidden">
+        <div class="bg-white rounded-lg shadow h-full flex flex-col">
+          <!-- Chat Header -->
+          <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+            <div class="flex space-x-4">
+              <button id="worldTab" class="tabBtn font-semibold text-lg text-indigo-600 border-b-2 border-indigo-600">World Chat</button>
+              <button id="friendsTab" class="tabBtn font-semibold text-lg text-gray-600">Friends Chat</button>
             </div>
-            <div>
-              <label for="statusInput" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <input type="text" id="statusInput" placeholder="What's on your mind?"
-                     class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+            <div id="onlineCount" class="flex items-center text-sm text-gray-600">
+              <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
+              <span id="onlineUsers">0</span> online
             </div>
-            <button id="saveProfileBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
-              Save Changes
-            </button>
           </div>
-        </div>
-        <div>
-          <h3 class="font-semibold text-lg mb-3">Account Settings</h3>
-          <div class="space-y-2">
-            <button id="logoutBtn" class="w-full text-left py-2 px-3 hover:bg-gray-100 rounded-lg">
-              <i class="fas fa-sign-out-alt mr-2 text-red-500"></i> Logout
-            </button>
-            <button id="deleteAccountBtn" class="w-full text-left py-2 px-3 hover:bg-gray-100 rounded-lg text-red-500">
-              <i class="fas fa-trash-alt mr-2"></i> Delete Account
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Chat Area -->
-  <div id="chatArea" class="chat-container flex-1 flex flex-col h-screen bg-gray-50">
-    <!-- Chat Header -->
-    <div class="p-3 border-b border-gray-200 bg-white flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <button id="backToContacts" class="md:hidden text-gray-500 hover:text-gray-700 mr-2">
-          <i class="fas fa-arrow-left"></i>
-        </button>
-        <div id="chatHeaderInfo" class="flex items-center space-x-3">
-          <img id="chatPartnerPic" src="https://www.gravatar.com/avatar/?d=mp" alt="Profile" class="profile-pic">
-          <div>
-            <div id="chatPartnerName" class="font-semibold">Select a chat</div>
-            <div id="chatPartnerStatus" class="text-xs text-gray-500">Offline</div>
+          
+          <!-- Messages -->
+          <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50"></div>
+          
+          <!-- Message Input -->
+          <div class="p-4 border-t border-gray-200">
+            <div class="flex space-x-2">
+              <input id="msgInput" type="text" placeholder="Type a message..." 
+                     class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+              <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-      <div class="flex items-center space-x-4">
-        <button id="videoCallBtn" class="text-gray-500 hover:text-indigo-600" title="Video Call">
-          <i class="fas fa-video"></i>
-        </button>
-        <button id="chatOptionsBtn" class="text-gray-500 hover:text-indigo-600" title="Options">
-          <i class="fas fa-ellipsis-v"></i>
-        </div>
     </div>
 
-    <!-- Messages Container -->
-    <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-100">
-      <div class="text-center text-gray-500 py-10">Select a chat to start messaging</div>
-    </div>
-
-    <!-- Message Input -->
-    <div class="p-3 border-t border-gray-200 bg-white">
-      <div class="flex items-center space-x-2">
-        <button id="emojiPickerBtn" class="text-gray-500 hover:text-indigo-600 p-2">
-          <i class="far fa-smile"></i>
-        </button>
-        <input id="msgInput" type="text" placeholder="Type a message..."
-               class="flex-1 py-2 px-4 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-        <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white p-2 rounded-full">
-          <i class="fas fa-paper-plane"></i>
-        </button>
-      </div>
-    </div>
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
   </div>
-
-  <!-- Video Call Container (hidden by default) -->
-  <div id="videoCallContainer" class="video-call-container hidden">
-    <video id="remoteVideo" class="remote-video" autoplay playsinline></video>
-    <video id="localVideo" class="local-video" autoplay playsinline muted></video>
-    <div class="call-controls">
-      <button id="muteBtn" class="call-btn mute-call">
-        <i class="fas fa-microphone"></i>
-      </button>
-      <button id="endCallBtn" class="call-btn end-call">
-        <i class="fas fa-phone"></i>
-      </button>
-      <button id="videoToggleBtn" class="call-btn video-toggle">
-        <i class="fas fa-video"></i>
-      </button>
-    </div>
-  </div>
-
-  <!-- Chat Options Menu (hidden by default) -->
-  <div id="chatOptionsMenu" class="absolute right-4 top-16 bg-white shadow-lg rounded-lg w-48 py-1 hidden z-50">
-    <button id="viewProfileBtn" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-      <i class="fas fa-user mr-2"></i> View Profile
-    </button>
-    <button id="blockUserBtn" class="block w-full text-left px-4 py-2 hover:bg-gray-100">
-      <i class="fas fa-ban mr-2"></i> Block User
-    </button>
-    <button id="deleteChatBtn" class="block w-full text-left px-4 py-2 text-red-500 hover:bg-gray-100">
-      <i class="fas fa-trash-alt mr-2"></i> Delete Chat
-    </button>
-  </div>
-
-  <!-- Notification Container -->
-  <div id="notificationContainer" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
     import { 
-      getAuth, 
-      GoogleAuthProvider, 
-      signInWithPopup, 
-      signOut, 
-      onAuthStateChanged,
-      deleteUser
-    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-    import { 
-      getFirestore, 
-      doc, 
-      setDoc, 
-      collection, 
-      addDoc, 
-      serverTimestamp,
-      query, 
-      orderBy, 
-      onSnapshot, 
-      where, 
-      getDocs, 
-      updateDoc,
-      arrayUnion, 
-      arrayRemove, 
-      getDoc,
-      deleteDoc
+      getFirestore, doc, setDoc, collection, addDoc, serverTimestamp,
+      query, orderBy, onSnapshot, where, getDocs, updateDoc, arrayUnion, arrayRemove, getDoc
     } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCWQWPa3OEH6ClFQ5gv9yswr8N1Yh1vstE",
       authDomain: "study-chat-app-4a40e.firebaseapp.com",
       projectId: "study-chat-app-4a40e",
-      storageBucket: "study-chat-app-4a40e.appspot.com",
+      storageBucket: "study-chat-app-4a40e.firebasestorage.app",
       messagingSenderId: "458309548485",
       appId: "1:458309548485:web:5dcccac12a7487b0d273ac",
       measurementId: "G-HQTQLDYT0Q"
@@ -408,204 +155,16 @@
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
     const db = getFirestore(app);
-    const storage = getStorage(app);
 
     let currentUser = null;
-    let currentChatPartner = null;
-    let peerConnection = null;
-    let localStream = null;
-    let remoteStream = null;
-    let isMuted = false;
-    let isVideoOff = false;
-    let unsubscribeFunctions = {
-      messages: null,
-      friendRequests: null,
-      onlineUsers: null,
-      friends: null,
-      recentChats: null,
-      blockedUsers: null
-    };
+    let currentChatType = 'world';
+    let friends = [];
+    let friendRequestsList = [];
+    let unsubscribeMessages = null;
+    let unsubscribeUser = null;
+    let unsubscribeOnlineUsers = null;
 
-    // Initialize the app when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      setupEventListeners();
-      initAuth();
-    });
-
-    // Setup all event listeners
-    function setupEventListeners() {
-      // Navigation tabs
-      document.getElementById('homeTab').addEventListener('click', () => showTab('home'));
-      document.getElementById('friendsTab').addEventListener('click', () => showTab('friends'));
-      document.getElementById('chatTab').addEventListener('click', () => showTab('chat'));
-      document.getElementById('settingsTab').addEventListener('click', () => showTab('settings'));
-      
-      // Sidebar toggle for mobile
-      document.getElementById('menuToggle').addEventListener('click', toggleSidebar);
-      document.getElementById('backToContacts').addEventListener('click', () => {
-        document.getElementById('chatArea').classList.add('hidden');
-        document.getElementById('sidebar').classList.remove('sidebar-hidden');
-      });
-      
-      // Search functionality
-      document.getElementById('searchInput').addEventListener('input', debounce(handleSearch, 300));
-      document.getElementById('friendsSearch').addEventListener('input', debounce(filterFriendsList, 300));
-      document.getElementById('chatSearch').addEventListener('input', debounce(filterChatContacts, 300));
-      
-      // Chat functionality
-      document.getElementById('sendBtn').addEventListener('click', sendMessage);
-      document.getElementById('msgInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
-      });
-      
-      // Video call buttons
-      document.getElementById('videoCallBtn').addEventListener('click', startVideoCall);
-      document.getElementById('endCallBtn').addEventListener('click', endVideoCall);
-      document.getElementById('muteBtn').addEventListener('click', toggleMute);
-      document.getElementById('videoToggleBtn').addEventListener('click', toggleVideo);
-      
-      // Chat options
-      document.getElementById('chatOptionsBtn').addEventListener('click', toggleChatOptions);
-      document.getElementById('viewProfileBtn').addEventListener('click', viewUserProfile);
-      document.getElementById('blockUserBtn').addEventListener('click', toggleBlockUser);
-      document.getElementById('deleteChatBtn').addEventListener('click', deleteChat);
-      
-      // Profile settings
-      document.getElementById('changeProfilePicBtn').addEventListener('click', () => {
-        document.getElementById('profilePicInput').click();
-      });
-      document.getElementById('profilePicInput').addEventListener('change', uploadProfilePicture);
-      document.getElementById('saveProfileBtn').addEventListener('click', saveProfileChanges);
-      document.getElementById('logoutBtn').addEventListener('click', handleLogout);
-      document.getElementById('deleteAccountBtn').addEventListener('click', confirmDeleteAccount);
-    }
-
-    // Initialize authentication state listener
-    function initAuth() {
-      onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          currentUser = user;
-          await saveUserProfile(user);
-          updateUIForUser(user);
-          initializeUserData();
-        } else {
-          currentUser = null;
-          updateUIForUser(null);
-          cleanupListeners();
-        }
-      });
-    }
-
-    // Save user profile to Firestore
-    async function saveUserProfile(user) {
-      if (!user?.uid) return;
-      
-      const userRef = doc(db, "users", user.uid);
-      const userSnap = await getDoc(userRef);
-      
-      if (!userSnap.exists()) {
-        await setDoc(userRef, {
-          uid: user.uid,
-          name: user.displayName || "No Name",
-          email: user.email || "",
-          photo: user.photoURL || "",
-          status: "Hey there! I'm using P0PI Chat",
-          friends: [],
-          friendRequests: [],
-          blockedUsers: [],
-          recentChats: [],
-          createdAt: new Date().toISOString(),
-          lastSeen: serverTimestamp()
-        }, { merge: true });
-      } else {
-        // Update last seen
-        await updateDoc(userRef, {
-          lastSeen: serverTimestamp()
-        });
-      }
-      
-      // Save to local storage
-      saveToLocalStorage('currentUser', {
-        uid: user.uid,
-        name: user.displayName,
-        email: user.email,
-        photo: user.photoURL
-      });
-    }
-
-    // Update UI based on user auth state
-    function updateUIForUser(user) {
-      const sidebar = document.getElementById('sidebar');
-      const chatArea = document.getElementById('chatArea');
-      
-      if (user) {
-        // Update user info in sidebar
-        document.getElementById('userProfilePic').src = user.photoURL || 'https://www.gravatar.com/avatar/?d=mp';
-        document.getElementById('userDisplayName').textContent = user.displayName || user.email || 'User';
-        document.getElementById('userStatus').textContent = 'Online';
-        
-        // Update settings form
-        document.getElementById('settingsProfilePic').src = user.photoURL || 'https://www.gravatar.com/avatar/?d=mp';
-        document.getElementById('displayNameInput').value = user.displayName || '';
-        
-        // Show main UI
-        sidebar.classList.remove('hidden');
-        chatArea.classList.remove('hidden');
-        
-        // Set default tab
-        showTab('home');
-      } else {
-        // Reset UI to login state
-        document.getElementById('userProfilePic').src = 'https://www.gravatar.com/avatar/?d=mp';
-        document.getElementById('userDisplayName').textContent = 'Guest';
-        document.getElementById('userStatus').textContent = 'Offline';
-        
-        // Hide chat area
-        chatArea.classList.add('hidden');
-        
-        // Show login prompt
-        showTab('home');
-      }
-    }
-
-    // Initialize all user data listeners
-    function initializeUserData() {
-      if (!currentUser) return;
-      
-      // Track online status
-      trackOnlineStatus();
-      
-      // Load friend requests
-      listenToFriendRequests();
-      
-      // Load friends list
-      loadFriendsList();
-      
-      // Load recent chats
-      loadRecentChats();
-      
-      // Load blocked users
-      loadBlockedUsers();
-    }
-
-    // Clean up all listeners when user logs out
-    function cleanupListeners() {
-      Object.values(unsubscribeFunctions).forEach(unsubscribe => {
-        if (unsubscribe) unsubscribe();
-      });
-      
-      // Reset all unsubscribe functions
-      unsubscribeFunctions = {
-        messages: null,
-        friendRequests: null,
-        onlineUsers: null,
-        friends: null,
-        recentChats: null,
-        blockedUsers: null
-      };
-    }
-
-    // Show notification
+    // Notification system
     function showNotification(type, message) {
       const container = document.getElementById('notificationContainer');
       const notification = document.createElement('div');
@@ -623,10 +182,6 @@
         case 'info':
           icon = 'fa-info-circle';
           bgColor = 'bg-blue-500';
-          break;
-        case 'warning':
-          icon = 'fa-exclamation-triangle';
-          bgColor = 'bg-yellow-500';
           break;
         default:
           icon = 'fa-bell';
@@ -647,7 +202,13 @@
       }, 5000);
     }
 
-    // Track online status
+    // Function to scroll chat to bottom
+    function scrollToBottom() {
+      const messagesDiv = document.getElementById('messages');
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // Track online users
     function trackOnlineStatus() {
       if (!currentUser) return;
       
@@ -667,12 +228,18 @@
       
       // Create listener for online users
       const onlineUsersQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-      unsubscribeFunctions.onlineUsers = onSnapshot(onlineUsersQuery, (snapshot) => {
-        // Update online count in chat header
-        document.getElementById('onlineUsers').textContent = snapshot.size;
-        
-        // Update online status of friends in friends list
-        updateOnlineStatusOfFriends(snapshot.docs.map(doc => doc.id));
+      unsubscribeOnlineUsers = onSnapshot(onlineUsersQuery, (snapshot) => {
+        let onlineCount = 0;
+        if (currentChatType === 'world') {
+          onlineCount = snapshot.size;
+        } else {
+          snapshot.forEach((doc) => {
+            if (doc.id === currentUser.uid || friends.includes(doc.id)) {
+              onlineCount++;
+            }
+          });
+        }
+        document.getElementById('onlineUsers').textContent = onlineCount;
       });
       
       // Set user as offline when they disconnect
@@ -681,114 +248,187 @@
       });
     }
 
-    // Show specific tab content
-    function showTab(tabName) {
-      // Hide all tab contents
-      document.getElementById('homeContent').classList.add('hidden');
-      document.getElementById('friendsContent').classList.add('hidden');
-      document.getElementById('chatContent').classList.add('hidden');
-      document.getElementById('settingsContent').classList.add('hidden');
-      
-      // Remove active class from all tabs
-      document.getElementById('homeTab').classList.remove('active-tab');
-      document.getElementById('friendsTab').classList.remove('active-tab');
-      document.getElementById('chatTab').classList.remove('active-tab');
-      document.getElementById('settingsTab').classList.remove('active-tab');
-      
-      // Show selected tab content and add active class
-      document.getElementById(`${tabName}Content`).classList.remove('hidden');
-      document.getElementById(`${tabName}Tab`).classList.add('active-tab');
+    // Save user profile to Firestore
+    async function saveUserProfile(user) {
+      if (!user || !user.uid) return;
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        name: user.displayName || "No Name",
+        email: user.email || "",
+        photo: user.photoURL || "",
+        friends: [],
+        friendRequests: [],
+        createdAt: new Date().toISOString(),
+        lastSeen: serverTimestamp()
+      }, { merge: true });
     }
 
-    // Toggle sidebar on mobile
-    function toggleSidebar() {
-      const sidebar = document.getElementById('sidebar');
-      const chatArea = document.getElementById('chatArea');
-      
-      if (sidebar.classList.contains('sidebar-hidden')) {
-        sidebar.classList.remove('sidebar-hidden');
-        chatArea.classList.remove('chat-expanded');
-      } else {
-        sidebar.classList.add('sidebar-hidden');
-        chatArea.classList.add('chat-expanded');
-      }
-    }
-
-    // Handle search for users
-    async function handleSearch(e) {
-      const searchText = e.target.value.trim();
-      const resultsDiv = document.getElementById('searchResults');
-      resultsDiv.innerHTML = '';
-      
-      if (searchText.length < 2) return; // minimum 2 characters
-      
-      const q = query(
-        collection(db, 'users'), 
-        where('name', '>=', searchText), 
-        where('name', '<=', searchText + '\uf8ff')
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (!currentUser) {
-        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">Please login to send friend requests</div>';
+    // Show user info in UI
+    function showUser(user) {
+      const ui = document.getElementById('userInfo');
+      if (!user) {
+        ui.innerHTML = '';
         return;
       }
-      
-      // Get current user's friend list and requests
-      const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
-      const currentUserData = currentUserSnap.data() || {};
-      const friends = currentUserData.friends || [];
-      const incomingRequests = currentUserData.friendRequests || [];
-      const blockedUsers = currentUserData.blockedUsers || [];
-      
-      if (querySnapshot.empty) {
-        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">No users found</div>';
-        return;
-      }
-      
-      for (const docSnap of querySnapshot.docs) {
-        const user = docSnap.data();
-        if (user.uid === currentUser.uid || blockedUsers.includes(user.uid)) continue; // skip yourself and blocked users
-        
-        const alreadyFriend = friends.includes(user.uid);
-        const requestSent = incomingRequests.includes(user.uid);
-        const isBlocked = blockedUsers.includes(user.uid);
-        
-        if (isBlocked) continue; // skip blocked users
-        
-        const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded cursor-pointer';
-        div.innerHTML = `
-          <div class="flex items-center space-x-3" onclick="viewUserProfile('${user.uid}')">
-            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
-            <div>
-              <div class="font-medium">${escapeHtml(user.name || user.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${user.email || ''}</div>
-            </div>
-          </div>
-          <button ${alreadyFriend || requestSent ? 'disabled' : ''}
-                  class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
-            ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add'}
-          </button>
-        `;
-        
-        if (!alreadyFriend && !requestSent) {
-          div.querySelector('.sendRequestBtn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            sendFriendRequest(user.uid);
-            div.querySelector('.sendRequestBtn').disabled = true;
-            div.querySelector('.sendRequestBtn').className = 'sendRequestBtn text-sm bg-indigo-100 text-indigo-600 py-1 px-3 rounded-lg';
-            div.querySelector('.sendRequestBtn').textContent = 'Requested';
+      ui.innerHTML = `
+        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}" 
+             alt="photo" class="w-8 h-8 rounded-full">
+        <span class="font-medium hidden md:inline">${user.displayName || user.email || 'User'}</span>
+        <button id="logoutBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-800 py-1 px-3 rounded-lg ml-2">
+          <i class="fas fa-sign-out-alt mr-1"></i>Logout
+        </button>
+      `;
+      document.getElementById('logoutBtn').addEventListener('click', async () => {
+        try {
+          // Set user as offline before signing out
+          const userStatusRef = doc(db, 'status', user.uid);
+          await setDoc(userStatusRef, {
+            state: 'offline',
+            last_changed: serverTimestamp(),
           });
+          
+          await signOut(auth);
+          showNotification('info', 'Logged out successfully');
+        } catch (err) {
+          console.error('Logout error', err);
+          showNotification('error', 'Logout failed: ' + (err.message || err));
         }
-        
-        resultsDiv.appendChild(div);
+      });
+    }
+
+    // Authentication
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+      try {
+        await signInWithPopup(auth, provider);
+        showNotification('success', 'Logged in successfully');
+      } catch (err) {
+        console.error('Login error', err);
+        showNotification('error', 'Login failed: ' + (err.message || err));
+      }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        await saveUserProfile(user);
+        showUser(user);
+        document.getElementById('chatArea').classList.remove('hidden');
+
+        // Load from local storage initially
+        friends = JSON.parse(localStorage.getItem('p0pi_friends')) || [];
+        friendRequestsList = JSON.parse(localStorage.getItem('p0pi_friend_requests')) || [];
+        renderFriendsList(friends);
+        renderFriendRequests(friendRequestsList);
+
+        listenToUserData();
+        loadChat();
+        trackOnlineStatus();
+      } else {
+        currentUser = null;
+        showUser(null);
+        document.getElementById('chatArea').classList.add('hidden');
+        clearFriendRequestsUI();
+        clearFriendsListUI();
+        if (unsubscribeMessages) unsubscribeMessages();
+        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeOnlineUsers) unsubscribeOnlineUsers();
+      }
+    });
+
+    // Send chat message
+    document.getElementById('sendBtn').addEventListener('click', sendMessage);
+    document.getElementById('msgInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    async function sendMessage() {
+      if (!currentUser) {
+        showNotification('error', 'Please login first');
+        return;
+      }
+      
+      const textEl = document.getElementById('msgInput');
+      const text = textEl.value.trim();
+      if (!text) return;
+      
+      try {
+        const collectionName = currentChatType === 'world' ? 'messages' : 'friends_messages';
+        await addDoc(collection(db, collectionName), {
+          text,
+          name: currentUser.displayName || currentUser.email || 'Anonymous',
+          uid: currentUser.uid,
+          photo: currentUser.photoURL || '',
+          timestamp: serverTimestamp()
+        });
+        textEl.value = '';
+      } catch (err) {
+        console.error('Send message error', err);
+        showNotification('error', 'Failed to send message');
       }
     }
 
-    // Send friend request
+    // Load chat messages realtime
+    function loadChat() {
+      if (unsubscribeMessages) unsubscribeMessages();
+      const collectionName = currentChatType === 'world' ? 'messages' : 'friends_messages';
+      const q = query(collection(db, collectionName), orderBy('timestamp'));
+      unsubscribeMessages = onSnapshot(q, (snapshot) => {
+        const messagesDiv = document.getElementById('messages');
+        messagesDiv.innerHTML = '';
+        
+        snapshot.forEach((snapDoc) => {
+          const msg = snapDoc.data();
+          if (currentChatType === 'friends' && msg.uid !== currentUser.uid && !friends.includes(msg.uid)) {
+            return; // Skip messages not from friends or self in friends chat
+          }
+          const el = document.createElement('div');
+          
+          // Check if message is from current user
+          const isCurrentUser = msg.uid === currentUser?.uid;
+          
+          el.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
+          el.classList.add('message-enter');
+          
+          const time = msg.timestamp && msg.timestamp.toDate ? 
+            msg.timestamp.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+          
+          el.innerHTML = `
+            <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md">
+              ${!isCurrentUser ? `
+                <img src="${escapeHtml(msg.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                     alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
+              ` : ''}
+              <div>
+                <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3">
+                  ${!isCurrentUser ? `<div class="font-semibold text-sm text-gray-700">${escapeHtml(msg.name || 'Unknown')}</div>` : ''}
+                  <div class="text-sm">${escapeHtml(msg.text || '')}</div>
+                </div>
+                <div class="text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}">${time}</div>
+              </div>
+            </div>
+          `;
+          
+          messagesDiv.appendChild(el);
+        });
+        scrollToBottom();
+      }, (err) => {
+        console.error('Messages onSnapshot error', err);
+        showNotification('error', 'Error loading messages');
+      });
+    }
+
+    // Escape HTML helper
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[c]);
+    }
+
+    // ----- FRIEND REQUEST SYSTEM -----
+
+    // Send Friend Request
     async function sendFriendRequest(targetUid) {
       if (!currentUser) {
         showNotification('error', 'Please login first');
@@ -813,7 +453,7 @@
       }
     }
 
-    // Accept friend request
+    // Accept Friend Request
     async function acceptFriendRequest(requesterUid) {
       if (!currentUser) return;
       
@@ -823,27 +463,12 @@
         
         await updateDoc(currentRef, {
           friends: arrayUnion(requesterUid),
-          friendRequests: arrayRemove(requesterUid),
-          recentChats: arrayUnion({
-            uid: requesterUid,
-            timestamp: serverTimestamp()
-          })
+          friendRequests: arrayRemove(requesterUid)
         });
         
         await updateDoc(requesterRef, {
-          friends: arrayUnion(currentUser.uid),
-          recentChats: arrayUnion({
-            uid: currentUser.uid,
-            timestamp: serverTimestamp()
-          })
+          friends: arrayUnion(currentUser.uid)
         });
-        
-        // Save to local storage
-        const localFriends = getFromLocalStorage('friends') || [];
-        if (!localFriends.includes(requesterUid)) {
-          localFriends.push(requesterUid);
-          saveToLocalStorage('friends', localFriends);
-        }
         
         showNotification('success', 'Friend request accepted!');
       } catch (err) {
@@ -852,7 +477,7 @@
       }
     }
 
-    // Reject friend request
+    // Reject Friend Request
     async function rejectFriendRequest(requesterUid) {
       if (!currentUser) return;
       
@@ -869,17 +494,21 @@
       }
     }
 
-    // Listen to friend requests
-    function listenToFriendRequests() {
+    // Listen to user data (friends and requests) realtime
+    function listenToUserData() {
       if (!currentUser) return;
-      if (unsubscribeFunctions.friendRequests) unsubscribeFunctions.friendRequests();
+      if (unsubscribeUser) unsubscribeUser();
       
       const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFunctions.friendRequests = onSnapshot(userRef, (docSnap) => {
+      unsubscribeUser = onSnapshot(userRef, async (docSnap) => {
         if (!docSnap.exists()) return;
         const data = docSnap.data();
-        const requests = data.friendRequests || [];
-        renderFriendRequests(requests);
+        friends = data.friends || [];
+        friendRequestsList = data.friendRequests || [];
+        localStorage.setItem('p0pi_friends', JSON.stringify(friends));
+        localStorage.setItem('p0pi_friend_requests', JSON.stringify(friendRequestsList));
+        renderFriendRequests(friendRequestsList);
+        await renderFriendsList(friends);
       });
     }
 
@@ -890,11 +519,11 @@
       
       if (requestUids.length === 0) {
         container.innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
+        document.getElementById('requestCount').textContent = '';
         return;
       }
       
-      // Save to local storage
-      saveToLocalStorage('friendRequests', requestUids);
+      document.getElementById('requestCount').textContent = requestUids.length;
       
       for (const uid of requestUids) {
         const userSnap = await getDoc(doc(db, 'users', uid));
@@ -905,9 +534,9 @@
         div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
         
         div.innerHTML = `
-          <div class="flex items-center space-x-3" onclick="viewUserProfile('${uid}')">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-10 h-10 rounded-full">
+          <div class="flex items-center space-x-3">
+            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
             <div>
               <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
               <div class="text-xs text-gray-500">wants to connect</div>
@@ -930,834 +559,131 @@
       }
     }
 
-    // Load friends list
-    async function loadFriendsList() {
-      if (!currentUser) return;
+    // Render friends list UI
+    async function renderFriendsList(friendsUids) {
+      const container = document.getElementById('friendsList');
+      container.innerHTML = '';
       
-      if (unsubscribeFunctions.friends) unsubscribeFunctions.friends();
+      if (friendsUids.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
+        document.getElementById('friendCount').textContent = '';
+        return;
+      }
       
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFunctions.friends = onSnapshot(userRef, async (docSnap) => {
-        if (!docSnap.exists()) return;
+      document.getElementById('friendCount').textContent = friendsUids.length;
+      
+      // Get online status for friends
+      const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
+      const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
+      const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
+      
+      for (const uid of friendsUids) {
+        const userSnap = await getDoc(doc(db, 'users', uid));
+        if (!userSnap.exists()) continue;
         
-        const data = docSnap.data();
-        const friends = data.friends || [];
-        const blockedUsers = data.blockedUsers || [];
+        const userData = userSnap.data();
+        const isOnline = onlineUsers.includes(uid);
         
-        // Filter out blocked users
-        const filteredFriends = friends.filter(uid => !blockedUsers.includes(uid));
+        const div = document.createElement('div');
+        div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
         
-        const container = document.getElementById('friendsList');
-        container.innerHTML = '';
+        div.innerHTML = `
+          <div class="relative">
+            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
+            <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
+          </div>
+          <div class="ml-3">
+            <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
+            <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
+          </div>
+        `;
         
-        if (filteredFriends.length === 0) {
-          container.innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
-          return;
-        }
-        
-        // Save to local storage
-        saveToLocalStorage('friends', filteredFriends);
-        
-        // Get online status for friends
-        const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-        const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
-        const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
-        
-        for (const uid of filteredFriends) {
-          const userSnap = await getDoc(doc(db, 'users', uid));
-          if (!userSnap.exists()) continue;
-          
-          const userData = userSnap.data();
-          const isOnline = onlineUsers.includes(uid);
-          
-          const div = document.createElement('div');
-          div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
-          div.addEventListener('click', () => openChat(uid));
-          
-          div.innerHTML = `
-            <div class="relative">
-              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                    alt="photo" class="w-10 h-10 rounded-full">
-              <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
-            </div>
-            <div class="ml-3">
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500">${isOnline ? 'Online now' : 'Offline'}</div>
-            </div>
-          `;
-          
-          container.appendChild(div);
-        }
-      });
+        container.appendChild(div);
+      }
     }
 
-    // Filter friends list based on search
-    async function filterFriendsList(e) {
-      const searchText = e.target.value.toLowerCase();
-      const friendsList = document.getElementById('friendsList');
-      const friends = friendsList.querySelectorAll('div[data-uid]');
-      
-      friends.forEach(friend => {
-        const name = friend.querySelector('.font-medium').textContent.toLowerCase();
-        if (name.includes(searchText)) {
-          friend.classList.remove('hidden');
-        } else {
-          friend.classList.add('hidden');
-        }
-      });
+    function clearFriendRequestsUI() {
+      document.getElementById('friendRequests').innerHTML = '<div class="text-gray-500 text-center py-4">No friend requests</div>';
+      document.getElementById('requestCount').textContent = '';
+    }
+    
+    function clearFriendsListUI() {
+      document.getElementById('friendsList').innerHTML = '<div class="text-gray-500 text-center py-4">No friends yet</div>';
+      document.getElementById('friendCount').textContent = '';
     }
 
-    // Load recent chats
-    async function loadRecentChats() {
-      if (!currentUser) return;
+    // Search students by name
+    document.getElementById('searchInput').addEventListener('input', debounce(async (e) => {
+      const searchText = e.target.value.trim();
+      const resultsDiv = document.getElementById('searchResults');
+      resultsDiv.innerHTML = '';
       
-      if (unsubscribeFunctions.recentChats) unsubscribeFunctions.recentChats();
-      
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFunctions.recentChats = onSnapshot(userRef, async (docSnap) => {
-        if (!docSnap.exists()) return;
-        
-        const data = docSnap.data();
-        const recentChats = data.recentChats || [];
-        const blockedUsers = data.blockedUsers || [];
-        
-        // Filter out chats with blocked users
-        const filteredChats = recentChats.filter(chat => !blockedUsers.includes(chat.uid));
-        
-        const container = document.getElementById('recentChats');
-        container.innerHTML = '';
-        
-        if (filteredChats.length === 0) {
-          container.innerHTML = '<div class="text-gray-500 text-center py-4">No recent chats</div>';
-          return;
-        }
-        
-        // Sort by most recent
-        filteredChats.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
-        
-        // Save to local storage
-        saveToLocalStorage('recentChats', filteredChats);
-        
-        // Get online status for users
-        const onlineStatusQuery = query(collection(db, 'status'), where('state', '==', 'online'));
-        const onlineStatusSnapshot = await getDocs(onlineStatusQuery);
-        const onlineUsers = onlineStatusSnapshot.docs.map(doc => doc.id);
-        
-        // Get last message for each chat
-        for (const chat of filteredChats) {
-          const userSnap = await getDoc(doc(db, 'users', chat.uid));
-          if (!userSnap.exists()) continue;
-          
-          const userData = userSnap.data();
-          const isOnline = onlineUsers.includes(chat.uid);
-          
-          // Get last message
-          const messagesQuery = query(
-            collection(db, 'messages'),
-            where('participants', 'array-contains', chat.uid),
-            orderBy('timestamp', 'desc'),
-            limit(1)
-          );
-          
-          const messagesSnapshot = await getDocs(messagesQuery);
-          let lastMessage = 'No messages yet';
-          let lastMessageTime = '';
-          
-          if (!messagesSnapshot.empty) {
-            const lastMsg = messagesSnapshot.docs[0].data();
-            lastMessage = lastMsg.text || 'Media message';
-            lastMessageTime = lastMsg.timestamp?.toDate().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || '';
-          }
-          
-          const div = document.createElement('div');
-          div.className = 'flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer';
-          div.setAttribute('data-uid', chat.uid);
-          div.addEventListener('click', () => openChat(chat.uid));
-          
-          div.innerHTML = `
-            <div class="relative">
-              <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                    alt="photo" class="w-10 h-10 rounded-full">
-              <span class="absolute bottom-0 right-0 w-3 h-3 ${isOnline ? 'bg-green-500' : 'bg-gray-400'} border-2 border-white rounded-full"></span>
-            </div>
-            <div class="ml-3 flex-1">
-              <div class="font-medium">${escapeHtml(userData.name || userData.email || 'User')}</div>
-              <div class="text-xs text-gray-500 truncate">${lastMessage}</div>
-            </div>
-            <div class="text-xs text-gray-500">${lastMessageTime}</div>
-          `;
-          
-          container.appendChild(div);
-        }
-      });
-    }
-
-    // Filter chat contacts
-    function filterChatContacts(e) {
-      const searchText = e.target.value.toLowerCase();
-      const chatContacts = document.getElementById('chatContacts');
-      const contacts = chatContacts.querySelectorAll('div[data-uid]');
-      
-      contacts.forEach(contact => {
-        const name = contact.querySelector('.font-medium').textContent.toLowerCase();
-        if (name.includes(searchText)) {
-          contact.classList.remove('hidden');
-        } else {
-          contact.classList.add('hidden');
-        }
-      });
-    }
-
-    // Load blocked users
-    async function loadBlockedUsers() {
-      if (!currentUser) return;
-      
-      if (unsubscribeFunctions.blockedUsers) unsubscribeFunctions.blockedUsers();
-      
-      const userRef = doc(db, 'users', currentUser.uid);
-      unsubscribeFunctions.blockedUsers = onSnapshot(userRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        const data = docSnap.data();
-        const blockedUsers = data.blockedUsers || [];
-        
-        // Save to local storage
-        saveToLocalStorage('blockedUsers', blockedUsers);
-      });
-    }
-
-    // Open chat with a user
-    async function openChat(userId) {
-      if (!currentUser) return;
-      
-      // Set current chat partner
-      currentChatPartner = userId;
-      
-      // Update UI for mobile
-      document.getElementById('sidebar').classList.add('sidebar-hidden');
-      document.getElementById('chatArea').classList.remove('hidden');
-      
-      // Load chat partner info
-      const userSnap = await getDoc(doc(db, 'users', userId));
-      if (!userSnap.exists()) return;
-      
-      const userData = userSnap.data();
-      
-      // Update chat header
-      document.getElementById('chatPartnerPic').src = userData.photo || 'https://www.gravatar.com/avatar/?d=mp';
-      document.getElementById('chatPartnerName').textContent = userData.name || userData.email || 'User';
-      
-      // Check online status
-      const statusSnap = await getDoc(doc(db, 'status', userId));
-      const isOnline = statusSnap.exists() && statusSnap.data().state === 'online';
-      document.getElementById('chatPartnerStatus').textContent = isOnline ? 'Online' : 'Offline';
-      document.getElementById('chatPartnerStatus').className = `text-xs ${isOnline ? 'text-green-500' : 'text-gray-500'}`;
-      
-      // Load messages
-      loadMessages(userId);
-    }
-
-    // Load messages for a specific chat
-    function loadMessages(userId) {
-      if (unsubscribeFunctions.messages) unsubscribeFunctions.messages();
-      
-      const messagesDiv = document.getElementById('messages');
-      messagesDiv.innerHTML = '';
-      
-      // Create a unique chat ID based on user IDs (sorted)
-      const participants = [currentUser.uid, userId].sort();
-      const chatId = participants.join('_');
+      if (searchText.length < 2) return; // minimum 2 characters
       
       const q = query(
-        collection(db, 'chats', chatId, 'messages'),
-        orderBy('timestamp', 'asc')
+        collection(db, 'users'), 
+        where('name', '>=', searchText), 
+        where('name', '<=', searchText + '\uf8ff')
       );
       
-      unsubscribeFunctions.messages = onSnapshot(q, (snapshot) => {
-        messagesDiv.innerHTML = '';
-        
-        snapshot.docChanges().forEach(change => {
-          if (change.type === 'added') {
-            const msg = change.doc.data();
-            addMessageToUI(msg, msg.senderId === currentUser.uid);
-            
-            // Scroll to bottom
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            
-            // Show notification for new messages if chat is not active
-            if (msg.senderId !== currentUser.uid && document.hidden) {
-              showNotification('info', `New message from ${msg.senderName}`);
-            }
-          }
-        });
-        
-        if (snapshot.empty) {
-          messagesDiv.innerHTML = '<div class="text-center text-gray-500 py-10">No messages yet. Start the conversation!</div>';
-        }
-      });
-    }
-
-    // Add message to UI
-    function addMessageToUI(msg, isCurrentUser) {
-      const messagesDiv = document.getElementById('messages');
-      const messageDiv = document.createElement('div');
+      const querySnapshot = await getDocs(q);
       
-      const time = msg.timestamp?.toDate?.().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) || '';
-      
-      messageDiv.className = `flex mb-3 ${isCurrentUser ? 'justify-end' : 'justify-start'}`;
-      messageDiv.classList.add('message-enter');
-      
-      messageDiv.innerHTML = `
-        <div class="flex ${isCurrentUser ? 'flex-row-reverse' : ''} max-w-xs md:max-w-md relative">
-          ${!isCurrentUser ? `
-            <img src="${escapeHtml(msg.senderPhoto || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="photo" class="w-8 h-8 rounded-full mt-1 mr-2">
-          ` : ''}
-          <div>
-            <div class="${isCurrentUser ? 'bg-indigo-600 text-white' : 'bg-white border border-gray-200'} rounded-lg p-3 chat-bubble ${isCurrentUser ? 'sent' : 'received'}">
-              <div class="text-sm">${escapeHtml(msg.text || '')}</div>
-            </div>
-            <div class="text-xs text-gray-500 mt-1 ${isCurrentUser ? 'text-right' : 'text-left'}">${time}</div>
-          </div>
-          ${isCurrentUser ? `
-            <div class="message-menu absolute top-0 right-0 mt-1 mr-2">
-              <button class="deleteMsgBtn text-gray-500 hover:text-red-500 p-1" data-id="${msg.id}">
-                <i class="fas fa-trash-alt text-xs"></i>
-              </button>
-            </div>
-          ` : ''}
-        </div>
-      `;
-      
-      // Add event listener for delete button
-      if (isCurrentUser) {
-        const deleteBtn = messageDiv.querySelector('.deleteMsgBtn');
-        deleteBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteMessage(msg.id);
-        });
-      }
-      
-      messagesDiv.appendChild(messageDiv);
-    }
-
-    // Send message
-    async function sendMessage() {
-      if (!currentUser || !currentChatPartner) {
-        showNotification('error', 'Please select a chat first');
+      if (!currentUser) {
+        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">Please login to send friend requests</div>';
         return;
       }
       
-      const textEl = document.getElementById('msgInput');
-      const text = textEl.value.trim();
-      if (!text) return;
+      // Get current user's friend list and requests
+      const currentUserSnap = await getDoc(doc(db, 'users', currentUser.uid));
+      const currentUserData = currentUserSnap.data() || {};
+      const friends = currentUserData.friends || [];
+      const incomingRequests = currentUserData.friendRequests || [];
       
-      // Create a unique chat ID based on user IDs (sorted)
-      const participants = [currentUser.uid, currentChatPartner].sort();
-      const chatId = participants.join('_');
-      
-      try {
-        // Add message to chat collection
-        await addDoc(collection(db, 'chats', chatId, 'messages'), {
-          text,
-          senderId: currentUser.uid,
-          senderName: currentUser.displayName || currentUser.email || 'Anonymous',
-          senderPhoto: currentUser.photoURL || '',
-          timestamp: serverTimestamp()
-        });
-        
-        // Update recent chats for both users
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          recentChats: arrayUnion({
-            uid: currentChatPartner,
-            timestamp: serverTimestamp()
-          })
-        });
-        
-        await updateDoc(doc(db, 'users', currentChatPartner), {
-          recentChats: arrayUnion({
-            uid: currentUser.uid,
-            timestamp: serverTimestamp()
-          })
-        });
-        
-        textEl.value = '';
-      } catch (err) {
-        console.error('Send message error', err);
-        showNotification('error', 'Failed to send message');
-      }
-    }
-
-    // Delete message
-    async function deleteMessage(messageId) {
-      if (!currentUser || !currentChatPartner) return;
-      
-      try {
-        const participants = [currentUser.uid, currentChatPartner].sort();
-        const chatId = participants.join('_');
-        
-        await deleteDoc(doc(db, 'chats', chatId, 'messages', messageId));
-        showNotification('success', 'Message deleted');
-      } catch (err) {
-        console.error('Delete message error', err);
-        showNotification('error', 'Failed to delete message');
-      }
-    }
-
-    // Delete chat
-    async function deleteChat() {
-      if (!currentUser || !currentChatPartner) return;
-      
-      try {
-        const participants = [currentUser.uid, currentChatPartner].sort();
-        const chatId = participants.join('_');
-        
-        // Remove from recent chats
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          recentChats: arrayRemove({
-            uid: currentChatPartner,
-            timestamp: serverTimestamp()
-          })
-        });
-        
-        // Close chat options menu
-        document.getElementById('chatOptionsMenu').classList.add('hidden');
-        
-        // Go back to contacts
-        document.getElementById('chatArea').classList.add('hidden');
-        document.getElementById('sidebar').classList.remove('sidebar-hidden');
-        
-        showNotification('success', 'Chat deleted');
-      } catch (err) {
-        console.error('Delete chat error', err);
-        showNotification('error', 'Failed to delete chat');
-      }
-    }
-
-    // Toggle block user
-    async function toggleBlockUser() {
-      if (!currentUser || !currentChatPartner) return;
-      
-      try {
-        const userRef = doc(db, 'users', currentUser.uid);
-        const userSnap = await getDoc(userRef);
-        
-        if (!userSnap.exists()) return;
-        
-        const blockedUsers = userSnap.data().blockedUsers || [];
-        const isBlocked = blockedUsers.includes(currentChatPartner);
-        
-        if (isBlocked) {
-          // Unblock user
-          await updateDoc(userRef, {
-            blockedUsers: arrayRemove(currentChatPartner)
-          });
-          showNotification('success', 'User unblocked');
-        } else {
-          // Block user
-          await updateDoc(userRef, {
-            blockedUsers: arrayUnion(currentChatPartner),
-            friends: arrayRemove(currentChatPartner),
-            recentChats: arrayRemove({
-              uid: currentChatPartner,
-              timestamp: serverTimestamp()
-            })
-          });
-          
-          // Close the chat
-          document.getElementById('chatOptionsMenu').classList.add('hidden');
-          document.getElementById('chatArea').classList.add('hidden');
-          document.getElementById('sidebar').classList.remove('sidebar-hidden');
-          
-          showNotification('success', 'User blocked');
-        }
-      } catch (err) {
-        console.error('Toggle block error', err);
-        showNotification('error', 'Failed to toggle block');
-      }
-    }
-
-    // View user profile
-    async function viewUserProfile(userId) {
-      if (!userId) userId = currentChatPartner;
-      if (!userId) return;
-      
-      // Get user data
-      const userSnap = await getDoc(doc(db, 'users', userId));
-      if (!userSnap.exists()) return;
-      
-      const userData = userSnap.data();
-      
-      // Create profile modal
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-      modal.innerHTML = `
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold">Profile</h3>
-            <button class="closeProfileModal text-gray-500 hover:text-gray-700">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div class="flex flex-col items-center mb-4">
-            <img src="${escapeHtml(userData.photo || 'https://www.gravatar.com/avatar/?d=mp')}"
-                  alt="Profile" class="w-24 h-24 rounded-full mb-3">
-            <h4 class="text-lg font-semibold">${escapeHtml(userData.name || 'Unknown')}</h4>
-            <p class="text-gray-500 text-sm">${escapeHtml(userData.email || '')}</p>
-            <p class="text-gray-600 mt-2">${escapeHtml(userData.status || '')}</p>
-          </div>
-          <div class="flex justify-center space-x-4">
-            ${userId !== currentUser.uid ? `
-              <button class="blockUserBtn bg-red-100 hover:bg-red-200 text-red-800 py-2 px-4 rounded-lg">
-                ${userData.blockedUsers?.includes(currentUser.uid) ? 'Unblock' : 'Block'}
-              </button>
-              <button class="messageUserBtn bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
-                Message
-              </button>
-            ` : ''}
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      // Add event listeners
-      modal.querySelector('.closeProfileModal').addEventListener('click', () => {
-        modal.remove();
-      });
-      
-      if (userId !== currentUser.uid) {
-        modal.querySelector('.blockUserBtn').addEventListener('click', async () => {
-          // Toggle block status
-          await toggleBlockUser(userId);
-          modal.remove();
-        });
-        
-        modal.querySelector('.messageUserBtn').addEventListener('click', () => {
-          // Open chat with this user
-          openChat(userId);
-          modal.remove();
-        });
-      }
-    }
-
-    // Start video call
-    async function startVideoCall() {
-      if (!currentUser || !currentChatPartner) {
-        showNotification('error', 'Please select a chat first');
+      if (querySnapshot.empty) {
+        resultsDiv.innerHTML = '<div class="text-gray-500 text-center py-2">No users found</div>';
         return;
       }
       
-      try {
-        // Show video call container
-        document.getElementById('videoCallContainer').classList.remove('hidden');
+      for (const docSnap of querySnapshot.docs) {
+        const user = docSnap.data();
+        if (user.uid === currentUser.uid) continue; // skip yourself
         
-        // Get local stream
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        document.getElementById('localVideo').srcObject = localStream;
+        const alreadyFriend = friends.includes(user.uid);
+        const requestSent = incomingRequests.includes(user.uid);
         
-        // Initialize WebRTC connection (simplified for demo)
-        peerConnection = new RTCPeerConnection();
-        peerConnection.onicecandidate = (event) => {
-          if (event.candidate) {
-            // Send ICE candidate to peer
-            // In a real app, you'd send this via Firebase
-          }
-        };
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2 hover:bg-gray-50 rounded';
         
-        peerConnection.ontrack = (event) => {
-          // Remote stream received
-          remoteStream = event.streams[0];
-          document.getElementById('remoteVideo').srcObject = remoteStream;
-        };
+        div.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <img src="${escapeHtml(user.photo || 'https://www.gravatar.com/avatar/?d=mp')}" 
+                 alt="photo" class="w-10 h-10 rounded-full">
+            <div>
+              <div class="font-medium">${escapeHtml(user.name || user.email || 'User')}</div>
+              <div class="text-xs text-gray-500">${user.email || ''}</div>
+            </div>
+          </div>
+          <button ${alreadyFriend || requestSent ? 'disabled' : ''} 
+                  class="sendRequestBtn text-sm ${alreadyFriend ? 'bg-gray-200 text-gray-600' : requestSent ? 'bg-indigo-100 text-indigo-600' : 'bg-indigo-600 hover:bg-indigo-700 text-white'} py-1 px-3 rounded-lg">
+            ${alreadyFriend ? 'Friends' : requestSent ? 'Requested' : 'Add'}
+          </button>
+        `;
         
-        // Add local stream to connection
-        localStream.getTracks().forEach(track => {
-          peerConnection.addTrack(track, localStream);
-        });
-        
-        // Create offer
-        const offer = await peerConnection.createOffer();
-        await peerConnection.setLocalDescription(offer);
-        
-        // Send offer to peer (via Firebase in a real app)
-        showNotification('info', 'Calling...');
-      } catch (err) {
-        console.error('Video call error', err);
-        showNotification('error', 'Failed to start video call');
-        endVideoCall();
-      }
-    }
-
-    // End video call
-    function endVideoCall() {
-      // Stop all tracks
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
-      
-      // Close peer connection
-      if (peerConnection) {
-        peerConnection.close();
-      }
-      
-      // Hide video call container
-      document.getElementById('videoCallContainer').classList.add('hidden');
-      
-      // Clear video elements
-      document.getElementById('localVideo').srcObject = null;
-      document.getElementById('remoteVideo').srcObject = null;
-      
-      showNotification('info', 'Call ended');
-    }
-
-    // Toggle mute
-    function toggleMute() {
-      if (!localStream) return;
-      
-      isMuted = !isMuted;
-      localStream.getAudioTracks().forEach(track => {
-        track.enabled = !isMuted;
-      });
-      
-      document.getElementById('muteBtn').innerHTML = isMuted ? 
-        '<i class="fas fa-microphone-slash"></i>' : 
-        '<i class="fas fa-microphone"></i>';
-    }
-
-    // Toggle video
-    function toggleVideo() {
-      if (!localStream) return;
-      
-      isVideoOff = !isVideoOff;
-      localStream.getVideoTracks().forEach(track => {
-        track.enabled = !isVideoOff;
-      });
-      
-      document.getElementById('videoToggleBtn').innerHTML = isVideoOff ? 
-        '<i class="fas fa-video-slash"></i>' : 
-        '<i class="fas fa-video"></i>';
-    }
-
-    // Toggle chat options menu
-    function toggleChatOptions() {
-      const menu = document.getElementById('chatOptionsMenu');
-      menu.classList.toggle('hidden');
-      
-      // Close menu when clicking outside
-      if (!menu.classList.contains('hidden')) {
-        const clickHandler = (e) => {
-          if (!menu.contains(e.target) && e.target.id !== 'chatOptionsBtn') {
-            menu.classList.add('hidden');
-            document.removeEventListener('click', clickHandler);
-          }
-        };
-        setTimeout(() => document.addEventListener('click', clickHandler), 0);
-      }
-    }
-
-    // Upload profile picture
-    async function uploadProfilePicture(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      
-      try {
-        showNotification('info', 'Uploading profile picture...');
-        
-        // Upload to Firebase Storage
-        const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
-        await uploadBytes(storageRef, file);
-        
-        // Get download URL
-        const downloadURL = await getDownloadURL(storageRef);
-        
-        // Update user profile
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          photo: downloadURL
-        });
-        
-        // Update auth profile
-        await updateProfile(auth.currentUser, {
-          photoURL: downloadURL
-        });
-        
-        // Update UI
-        document.getElementById('userProfilePic').src = downloadURL;
-        document.getElementById('settingsProfilePic').src = downloadURL;
-        
-        showNotification('success', 'Profile picture updated!');
-      } catch (err) {
-        console.error('Profile picture upload error', err);
-        showNotification('error', 'Failed to upload profile picture');
-      }
-    }
-
-    // Save profile changes
-    async function saveProfileChanges() {
-      if (!currentUser) return;
-      
-      const displayName = document.getElementById('displayNameInput').value.trim();
-      const status = document.getElementById('statusInput').value.trim();
-      
-      try {
-        // Update Firestore
-        await updateDoc(doc(db, 'users', currentUser.uid), {
-          name: displayName || currentUser.displayName,
-          status: status || "Hey there! I'm using P0PI Chat"
-        });
-        
-        // Update auth profile
-        await updateProfile(auth.currentUser, {
-          displayName: displayName || currentUser.displayName
-        });
-        
-        // Update UI
-        document.getElementById('userDisplayName').textContent = displayName || currentUser.displayName;
-        
-        showNotification('success', 'Profile updated!');
-      } catch (err) {
-        console.error('Profile update error', err);
-        showNotification('error', 'Failed to update profile');
-      }
-    }
-
-    // Handle logout
-    async function handleLogout() {
-      try {
-        // Set user as offline before signing out
-        if (currentUser) {
-          const userStatusRef = doc(db, 'status', currentUser.uid);
-          await setDoc(userStatusRef, {
-            state: 'offline',
-            last_changed: serverTimestamp(),
+        if (!alreadyFriend && !requestSent) {
+          div.querySelector('.sendRequestBtn').addEventListener('click', () => {
+            sendFriendRequest(user.uid);
+            div.querySelector('.sendRequestBtn').disabled = true;
+            div.querySelector('.sendRequestBtn').className = 'sendRequestBtn text-sm bg-indigo-100 text-indigo-600 py-1 px-3 rounded-lg';
+            div.querySelector('.sendRequestBtn').textContent = 'Requested';
           });
         }
         
-        await signOut(auth);
-        showNotification('info', 'Logged out successfully');
-      } catch (err) {
-        console.error('Logout error', err);
-        showNotification('error', 'Logout failed: ' + (err.message || err));
+        resultsDiv.appendChild(div);
       }
-    }
+    }, 300));
 
-    // Confirm account deletion
-    function confirmDeleteAccount() {
-      const modal = document.createElement('div');
-      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-      modal.innerHTML = `
-        <div class="bg-white rounded-lg p-6 w-full max-w-md">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold text-red-600">Delete Account</h3>
-            <button class="closeModal text-gray-500 hover:text-gray-700">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <p class="mb-4">Are you sure you want to delete your account? This action cannot be undone.</p>
-          <div class="flex justify-end space-x-3">
-            <button class="cancelDeleteBtn bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg">
-              Cancel
-            </button>
-            <button class="confirmDeleteBtn bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg">
-              Delete
-            </button>
-          </div>
-        </div>
-      `;
-      
-      document.body.appendChild(modal);
-      
-      modal.querySelector('.closeModal').addEventListener('click', () => modal.remove());
-      modal.querySelector('.cancelDeleteBtn').addEventListener('click', () => modal.remove());
-      modal.querySelector('.confirmDeleteBtn').addEventListener('click', async () => {
-        await deleteUserAccount();
-        modal.remove();
-      });
-    }
-
-    // Delete user account
-    async function deleteUserAccount() {
-      try {
-        if (!currentUser) return;
-        
-        // Delete user data from Firestore
-        await deleteDoc(doc(db, 'users', currentUser.uid));
-        
-        // Delete profile picture from storage if exists
-        try {
-          const storageRef = ref(storage, `profile_pictures/${currentUser.uid}`);
-          await deleteObject(storageRef);
-        } catch (err) {
-          console.log('No profile picture to delete');
-        }
-        
-        // Delete user from auth
-        await deleteUser(auth.currentUser);
-        
-        showNotification('success', 'Account deleted successfully');
-      } catch (err) {
-        console.error('Delete account error', err);
-        showNotification('error', 'Failed to delete account: ' + (err.message || err));
-      }
-    }
-
-    // Update online status of friends
-    function updateOnlineStatusOfFriends(onlineUserIds) {
-      const friendsList = document.getElementById('friendsList');
-      const friends = friendsList.querySelectorAll('div[data-uid]');
-      
-      friends.forEach(friend => {
-        const uid = friend.getAttribute('data-uid');
-        const statusDot = friend.querySelector('.absolute span');
-        const statusText = friend.querySelector('.text-xs');
-        
-        if (onlineUserIds.includes(uid)) {
-          statusDot.className = 'absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full';
-          statusText.textContent = 'Online now';
-          statusText.className = 'text-xs text-green-500';
-        } else {
-          statusDot.className = 'absolute bottom-0 right-0 w-3 h-3 bg-gray-400 border-2 border-white rounded-full';
-          statusText.textContent = 'Offline';
-          statusText.className = 'text-xs text-gray-500';
-        }
-      });
-      
-      // Update current chat partner status if applicable
-      if (currentChatPartner) {
-        const isOnline = onlineUserIds.includes(currentChatPartner);
-        document.getElementById('chatPartnerStatus').textContent = isOnline ? 'Online' : 'Offline';
-        document.getElementById('chatPartnerStatus').className = `text-xs ${isOnline ? 'text-green-500' : 'text-gray-500'}`;
-      }
-    }
-
-    // Save data to local storage
-    function saveToLocalStorage(key, data) {
-      try {
-        localStorage.setItem(key, JSON.stringify(data));
-      } catch (err) {
-        console.error('Local storage save error', err);
-      }
-    }
-
-    // Get data from local storage
-    function getFromLocalStorage(key) {
-      try {
-        const data = localStorage.getItem(key);
-        return data ? JSON.parse(data) : null;
-      } catch (err) {
-        console.error('Local storage read error', err);
-        return null;
-      }
-    }
-
-    // Escape HTML helper
-    function escapeHtml(str) {
-      if (!str) return '';
-      const div = document.createElement('div');
-      div.textContent = str;
-      return div.innerHTML;
-    }
-
-    // Debounce function
+    // Debounce function to limit search frequency
     function debounce(func, wait) {
       let timeout;
       return function(...args) {
@@ -1766,8 +692,34 @@
       };
     }
 
-    // Expose viewUserProfile to global scope for HTML onclick
-    window.viewUserProfile = viewUserProfile;
+    // Tab switching
+    document.getElementById('worldTab').addEventListener('click', () => {
+      currentChatType = 'world';
+      updateTabs();
+      loadChat();
+    });
+
+    document.getElementById('friendsTab').addEventListener('click', () => {
+      currentChatType = 'friends';
+      updateTabs();
+      loadChat();
+    });
+
+    function updateTabs() {
+      const worldTab = document.getElementById('worldTab');
+      const friendsTab = document.getElementById('friendsTab');
+      if (currentChatType === 'world') {
+        worldTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+        worldTab.classList.remove('text-gray-600');
+        friendsTab.classList.add('text-gray-600');
+        friendsTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+      } else {
+        friendsTab.classList.add('text-indigo-600', 'border-b-2', 'border-indigo-600');
+        friendsTab.classList.remove('text-gray-600');
+        worldTab.classList.add('text-gray-600');
+        worldTab.classList.remove('text-indigo-600', 'border-b-2', 'border-indigo-600');
+      }
+    }
   </script>
 </body>
 </html>
