@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     /* Custom CSS for a better experience, complementing Tailwind */
+    body {
+        font-family: 'Inter', sans-serif;
+    }
     .notification {
       animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-in 3s forwards;
     }
@@ -28,23 +31,27 @@
     /* Custom scrollbar styles for different browsers */
     #messages::-webkit-scrollbar,
     #friendsMessages::-webkit-scrollbar,
-    #privateMessages::-webkit-scrollbar {
+    #privateMessages::-webkit-scrollbar,
+    .chat-list-container::-webkit-scrollbar {
       width: 6px;
     }
     #messages::-webkit-scrollbar-track,
     #friendsMessages::-webkit-scrollbar-track,
-    #privateMessages::-webkit-scrollbar-track {
+    #privateMessages::-webkit-scrollbar-track,
+    .chat-list-container::-webkit-scrollbar-track {
       background: #f1f1f1;
     }
     #messages::-webkit-scrollbar-thumb,
     #friendsMessages::-webkit-scrollbar-thumb,
-    #privateMessages::-webkit-scrollbar-thumb {
+    #privateMessages::-webkit-scrollbar-thumb,
+    .chat-list-container::-webkit-scrollbar-thumb {
       background: #888;
       border-radius: 3px;
     }
     #messages::-webkit-scrollbar-thumb:hover,
     #friendsMessages::-webkit-scrollbar-thumb:hover,
-    #privateMessages::-webkit-scrollbar-thumb:hover {
+    #privateMessages::-webkit-scrollbar-thumb:hover,
+    .chat-list-container::-webkit-scrollbar-thumb:hover {
       background: #555;
     }
     .chat-tab {
@@ -141,44 +148,48 @@
       display: none;
     }
 
-    /* WhatsApp-like UI styles */
-    .whatsapp-chat-list-item {
+    /* Custom styles for WhatsApp-like UI */
+    .chat-list-container {
+        height: calc(100vh - 80px);
+        overflow-y: auto;
+    }
+    .chat-list-item {
         display: flex;
         align-items: center;
         padding: 12px 16px;
         cursor: pointer;
         border-bottom: 1px solid #f0f2f5;
     }
-    .whatsapp-chat-list-item:hover {
+    .chat-list-item:hover {
         background-color: #f5f5f5;
     }
-    .whatsapp-chat-list-item img {
+    .chat-list-item img {
         width: 50px;
         height: 50px;
         border-radius: 50%;
         margin-right: 15px;
     }
-    .whatsapp-chat-list-item .chat-info {
+    .chat-list-item .chat-info {
         flex: 1;
     }
-    .whatsapp-chat-list-item .chat-name {
+    .chat-list-item .chat-name {
         font-weight: 600;
         font-size: 16px;
         color: #111b21;
     }
-    .whatsapp-chat-list-item .last-message {
+    .chat-list-item .last-message {
         font-size: 14px;
         color: #667781;
     }
 
-    .whatsapp-message-input {
+    .message-input-container {
         background-color: #f0f2f5;
         padding: 8px 16px;
         display: flex;
         align-items: center;
         border-radius: 20px;
     }
-    .whatsapp-message-input input {
+    .message-input-container input {
         flex: 1;
         background: transparent;
         border: none;
@@ -186,7 +197,7 @@
         padding: 8px;
         font-size: 16px;
     }
-    .whatsapp-message-input button {
+    .message-input-container button {
         background: none;
         border: none;
         color: #54656f;
@@ -196,16 +207,68 @@
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen p-4 md:p-6">
-  <div class="max-w-6xl mx-auto">
-    <!-- Mobile Menu Button -->
-    <button id="mobileMenuBtn" class="md:hidden fixed top-4 left-4 z-50 bg-indigo-600 text-white p-2 rounded-lg">
-      <i class="fas fa-bars"></i>
-    </button>
+  <div class="max-w-6xl mx-auto flex h-screen">
+    <!-- Left Column - Desktop Chat List / Mobile Menu -->
+    <div id="leftColumn" class="hidden lg:block w-full lg:w-1/3 bg-white shadow-lg flex flex-col">
+      <div id="leftHeader" class="p-4 border-b border-gray-200 flex justify-between items-center">
+        <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">
+          <i class="fas fa-graduation-cap mr-2"></i>P0PI
+        </h1>
+        <div id="userInfo" class="flex items-center space-x-2"></div>
+      </div>
 
-    <!-- Chat Switch Button (Mobile) -->
-    <button id="chatSwitchBtn" class="bg-indigo-600 text-white p-3 rounded-full shadow-lg">
-      <i class="fas fa-comment-alt"></i>
-    </button>
+      <!-- Search Section -->
+      <div class="p-4 border-b border-gray-200">
+        <input type="text" id="searchInput" placeholder="Search or start a new chat"
+                class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+        <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
+      </div>
+
+      <!-- Friends List -->
+      <div id="friendsListContainer" class="flex-1 overflow-y-auto chat-list-container">
+        <div id="friendsList" class="space-y-2">
+            <div class="text-gray-500 text-center py-4">No friends yet</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column - Chat Area -->
+    <div id="chatArea" class="lg:w-2/3 flex-1 hidden flex-col">
+        <div class="bg-white rounded-lg shadow h-full flex flex-col">
+            <!-- Chat Header -->
+            <div id="chatHeader" class="p-4 border-b border-gray-200 flex items-center justify-between">
+                <div class="flex items-center">
+                    <button id="backToChatListBtn" class="md:hidden mr-4 text-gray-500"><i class="fas fa-arrow-left"></i></button>
+                    <img id="chatPartnerPhoto" src="https://www.gravatar.com/avatar/?d=mp" alt="photo" class="w-10 h-10 rounded-full mr-3">
+                    <div>
+                        <span id="chatPartnerName" class="font-medium">World Chat</span>
+                        <div id="chatPartnerStatus" class="text-xs text-gray-500"></div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="text-gray-500"><i class="fas fa-video"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-phone"></i></button>
+                    <button class="text-gray-500"><i class="fas fa-ellipsis-v"></i></button>
+                </div>
+            </div>
+
+            <!-- Messages Container -->
+            <div id="messages" class="flex-1 p-4 overflow-y-auto bg-gray-50">
+                <!-- Messages will be dynamically loaded here -->
+            </div>
+
+            <!-- Message Input -->
+            <div class="p-4 border-t border-gray-200">
+                <div class="flex items-center space-x-2">
+                    <input id="msgInput" type="text" placeholder="एक मैसेज लिखें..."
+                            class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Mobile Menu -->
     <div id="mobileMenu" class="hidden fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg p-4">
@@ -215,17 +278,28 @@
       <div class="mt-8 space-y-6">
         <div id="mobileUserInfo" class="flex items-center space-x-3 p-2 border-b border-gray-200"></div>
         <div class="space-y-4">
+          <!-- Search Section in Mobile Menu -->
           <div class="bg-gray-100 p-3 rounded-lg">
             <h3 class="font-semibold text-lg mb-2">
-              <i class="fas fa-user-friends mr-2"></i>Friends
+              <i class="fas fa-search mr-2"></i>स्टडी पार्टनर्स खोजें
             </h3>
-            <div id="mobileFriendsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            <input type="text" id="mobileSearchInput" placeholder="नाम से छात्रों को खोजें"
+                   class="w-full p-2 border border-gray-300 rounded-lg">
+            <div id="mobileSearchResults" class="space-y-2 mt-2 max-h-40 overflow-y-auto"></div>
           </div>
+          <!-- Friend Requests in Mobile Menu -->
           <div class="bg-gray-100 p-3 rounded-lg">
             <h3 class="font-semibold text-lg mb-2">
-              <i class="fas fa-user-clock mr-2"></i>Requests
+              <i class="fas fa-user-clock mr-2"></i>फ्रेंड रिक्वेस्ट
             </h3>
             <div id="mobileFriendRequests" class="space-y-2 max-h-60 overflow-y-auto"></div>
+          </div>
+          <!-- Friends List in Mobile Menu -->
+          <div class="bg-gray-100 p-3 rounded-lg">
+            <h3 class="font-semibold text-lg mb-2">
+              <i class="fas fa-user-friends mr-2"></i>दोस्तों की सूची
+            </h3>
+            <div id="mobileFriendsList" class="space-y-2 max-h-60 overflow-y-auto"></div>
           </div>
         </div>
       </div>
@@ -233,122 +307,6 @@
 
     <!-- Overlay for mobile menu -->
     <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-30 hidden"></div>
-
-    <!-- Header -->
-    <header class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl md:text-3xl font-bold text-indigo-700">
-        <i class="fas fa-graduation-cap mr-2"></i>P0PI
-      </h1>
-      <div id="userInfo" class="flex items-center space-x-2"></div>
-    </header>
-
-    <!-- Main Content -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <!-- Left Column - Search and Friends -->
-      <div id="leftColumn" class="lg:col-span-1 space-y-6">
-        <!-- Login Button -->
-        <div id="controls" class="bg-white p-4 rounded-lg shadow">
-          <button id="loginBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg flex items-center justify-center">
-            <i class="fab fa-google mr-2"></i> Google से लॉग इन करें
-          </button>
-        </div>
-
-        <!-- Search Section -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <h3 class="font-semibold text-lg mb-3 text-gray-800">
-            <i class="fas fa-search mr-2 text-indigo-600"></i>स्टडी पार्टनर्स खोजें
-          </h3>
-          <input type="text" id="searchInput" placeholder="नाम से छात्रों को खोजें (न्यूनतम 2 अक्षर)"
-                  class="w-full p-2 border border-gray-300 rounded-lg mb-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-          <div id="searchResults" class="space-y-2 max-h-60 overflow-y-auto"></div>
-        </div>
-
-        <!-- Friend Requests -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-semibold text-lg text-gray-800">
-              <i class="fas fa-user-clock mr-2 text-indigo-600"></i>फ्रेंड रिक्वेस्ट
-            </h3>
-            <span id="requestCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
-          </div>
-          <div id="friendRequests" class="space-y-2 max-h-60 overflow-y-auto">
-            <div class="text-gray-500 text-center py-4">कोई फ्रेंड रिक्वेस्ट नहीं</div>
-          </div>
-        </div>
-
-        <!-- Friends List -->
-        <div class="bg-white p-4 rounded-lg shadow">
-          <div class="flex justify-between items-center mb-3">
-            <h3 class="font-semibold text-lg text-gray-800">
-              <i class="fas fa-user-friends mr-2 text-indigo-600"></i>दोस्तों की सूची
-            </h3>
-            <span id="friendCount" class="bg-indigo-100 text-indigo-800 text-xs font-medium px-2.5 py-0.5 rounded-full"></span>
-          </div>
-          <div id="friendsList" class="space-y-2 max-h-60 overflow-y-auto">
-            <div class="text-gray-500 text-center py-4">अभी कोई दोस्त नहीं है</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Right Column - Chat Area -->
-      <div id="chatArea" class="lg:col-span-2 hidden">
-        <div class="bg-white rounded-lg shadow h-full flex flex-col">
-          <!-- Chat Header with Tabs -->
-          <div class="p-4 border-b border-gray-200">
-            <div class="flex justify-between items-center mb-2">
-              <h2 class="font-semibold text-lg text-gray-800">
-                <i class="fas fa-comments mr-2 text-indigo-600"></i>
-                <span id="chatHeaderText">स्टडी चैट</span>
-              </h2>
-              <div id="onlineCount" class="flex items-center text-sm text-gray-600">
-                <span class="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                <span id="onlineUsers">0</span> ऑनलाइन
-              </div>
-            </div>
-            <div class="flex border-b border-gray-200">
-              <button id="worldChatTab" class="chat-tab active flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-globe mr-1"></i> वर्ल्ड चैट
-              </button>
-              <button id="friendsChatTab" class="chat-tab flex-1 py-2 px-4 text-center font-medium rounded-t-lg">
-                <i class="fas fa-user-friends mr-1"></i> दोस्तों की चैट
-              </button>
-            </div>
-            <div id="privateChatHeader" class="hidden mt-2 flex items-center justify-between bg-indigo-50 p-2 rounded">
-              <div class="flex items-center">
-                <img id="privateChatPhoto" src="" alt="photo" class="w-8 h-8 rounded-full mr-2">
-                <span id="privateChatName" class="font-medium"></span>
-              </div>
-              <button id="exitPrivateChat" class="text-indigo-600 hover:text-indigo-800">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-
-          <!-- Messages Container -->
-          <div class="flex-1 relative">
-            <!-- World Chat Messages -->
-            <div id="messages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50"></div>
-            
-            <!-- Friends Chat Messages -->
-            <div id="friendsMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-            
-            <!-- Private Chat Messages -->
-            <div id="privateMessages" class="absolute inset-0 p-4 overflow-y-auto bg-gray-50 hidden"></div>
-          </div>
-
-          <!-- Message Input -->
-          <div class="p-4 border-t border-gray-200">
-            <div class="flex space-x-2">
-              <input id="msgInput" type="text" placeholder="एक मैसेज लिखें..."
-                      class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
-              <button id="sendBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 px-4 rounded-lg">
-                <i class="fas fa-paper-plane"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Notification Container -->
     <div id="notificationContainer" class="fixed bottom-4 right-4 space-y-2 z-50"></div>
@@ -507,6 +465,12 @@
         document.getElementById('chatArea').classList.add('hidden');
       }
     });
+    
+    document.getElementById('backToChatListBtn').addEventListener('click', () => {
+      document.getElementById('chatArea').classList.add('hidden');
+      document.getElementById('leftColumn').classList.remove('hidden');
+    });
+
 
     // Confirmation modal handlers
     document.getElementById('confirmCancel').addEventListener('click', () => {
