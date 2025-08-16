@@ -68,21 +68,42 @@
     #overlay {
       transition: opacity 0.3s ease;
     }
-    /* Chat switch button for mobile */
+    /* Chat switch button for mobile - This button now toggles between the left and right panels on small screens */
     #chatSwitchBtn {
       position: fixed;
       bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 40;
-      display: none;
+      display: none; /* Hide by default on desktop */
     }
     @media (max-width: 768px) {
       #chatSwitchBtn {
-        display: block;
+        display: block; /* Show only on mobile */
       }
       .lg\:grid-cols-3 {
         grid-template-columns: 1fr;
+      }
+      /* Ensure chat area and left column are responsive */
+      #leftColumn, #chatArea {
+        width: 100%;
+        transition: transform 0.3s ease-in-out;
+      }
+      #leftColumn.hidden {
+        transform: translateX(-100%);
+        position: absolute;
+      }
+      #chatArea.hidden {
+        transform: translateX(100%);
+        position: absolute;
+      }
+      #chatArea:not(.hidden) {
+        transform: translateX(0);
+        position: relative;
+      }
+      #leftColumn:not(.hidden) {
+        transform: translateX(0);
+        position: relative;
       }
     }
     /* Delete button on messages, only visible on hover */
@@ -378,12 +399,13 @@
 
     // Chat switch button for mobile
     document.getElementById('chatSwitchBtn').addEventListener('click', () => {
-      if (document.getElementById('chatArea').classList.contains('hidden')) {
-        document.getElementById('chatArea').classList.remove('hidden');
+      const isLeftColumnVisible = !document.getElementById('leftColumn').classList.contains('hidden');
+      if (isLeftColumnVisible) {
         document.getElementById('leftColumn').classList.add('hidden');
+        document.getElementById('chatArea').classList.remove('hidden');
       } else {
-        document.getElementById('chatArea').classList.add('hidden');
         document.getElementById('leftColumn').classList.remove('hidden');
+        document.getElementById('chatArea').classList.add('hidden');
       }
     });
 
@@ -520,7 +542,7 @@
         </button>
       `;
       mobileUi.innerHTML = `
-        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp'}"
+        <img src="${user.photoURL || 'https://www.gravatar.com/avatar/?d=mp')}"
               alt="photo" class="w-10 h-10 rounded-full">
         <div>
           <div class="font-medium">${user.displayName || user.email || 'User'}</div>
@@ -572,6 +594,7 @@
         // Hide left column on mobile and show chat area
         if (window.innerWidth < 1024) {
           document.getElementById('leftColumn').classList.add('hidden');
+          document.getElementById('chatArea').classList.remove('hidden');
         }
 
         // Load any active private chat from local storage
