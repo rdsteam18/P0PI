@@ -614,28 +614,35 @@
             </div>
         </div>
       `;
-      document.getElementById('profileBtn').addEventListener('click', () => {
-          if (currentUser) {
-              document.getElementById('profileModal').classList.remove('hidden');
-              document.getElementById('profileNameInput').value = currentUser.displayName || '';
-          }
-      });
-      document.getElementById('logoutBtn').addEventListener('click', async () => {
-        try {
-          // Set user as offline before signing out
-          const userStatusRef = doc(db, 'status', user.uid);
-          await setDoc(userStatusRef, {
-            state: 'offline',
-            last_changed: serverTimestamp(),
+      // It's crucial to check if the button exists before adding an event listener
+      const profileBtn = document.getElementById('profileBtn');
+      if (profileBtn) {
+          profileBtn.addEventListener('click', () => {
+              if (currentUser) {
+                  document.getElementById('profileModal').classList.remove('hidden');
+                  document.getElementById('profileNameInput').value = currentUser.displayName || '';
+              }
           });
-          
-          await signOut(auth);
-          showNotification('info', 'सफलतापूर्वक लॉग आउट हो गए');
-        } catch (err) {
-          console.error('Logout error', err);
-          showNotification('error', 'लॉग आउट विफल रहा: ' + (err.message || err));
-        }
-      });
+      }
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (logoutBtn) {
+          logoutBtn.addEventListener('click', async () => {
+            try {
+              // Set user as offline before signing out
+              const userStatusRef = doc(db, 'status', user.uid);
+              await setDoc(userStatusRef, {
+                state: 'offline',
+                last_changed: serverTimestamp(),
+              });
+              
+              await signOut(auth);
+              showNotification('info', 'सफलतापूर्वक लॉग आउट हो गए');
+            } catch (err) {
+              console.error('Logout error', err);
+              showNotification('error', 'लॉग आउट विफल रहा: ' + (err.message || err));
+            }
+          });
+      }
     }
 
     // Authentication
@@ -1339,4 +1346,3 @@
   </script>
 </body>
 </html>
-
