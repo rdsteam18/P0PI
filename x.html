@@ -145,6 +145,19 @@
               <div id="searchResults" class="space-y-2 max-h-40 overflow-y-auto"></div>
             </div>
 
+            <!-- Teachers List -->
+            <div class="bg-white p-4 rounded-lg shadow">
+                 <button class="accordion-header w-full flex justify-between items-center">
+                    <h3 class="font-semibold text-lg text-gray-800">
+                      <i class="fas fa-chalkboard-teacher mr-2 text-indigo-600"></i>Teachers
+                    </h3>
+                    <i class="fas fa-chevron-down accordion-icon transition-transform"></i>
+                </button>
+                <div id="teachersList" class="accordion-content mt-2 space-y-2">
+                    <div class="text-gray-500 text-center py-4">No teachers available</div>
+                </div>
+            </div>
+
             <!-- Friend Requests -->
             <div class="bg-white p-4 rounded-lg shadow">
                 <button class="accordion-header w-full flex justify-between items-center">
@@ -298,6 +311,7 @@
     const sidebar = document.getElementById('sidebar');
     const mainChat = document.getElementById('main-chat');
     const chatPartnerInfo = document.getElementById('chat-partner-info');
+    const teachersListContainer = document.getElementById('teachersList');
 
 
     let currentChatPartner = null;
@@ -416,7 +430,7 @@
         const user = userCredential.user;
         const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
         await updateProfile(user, { displayName: name, photoURL: photoURL });
-        await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email, photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [] });
+        await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email, photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [], role: "student" });
       } catch (error) { showNotification("error", error.message); }
     });
 
@@ -433,7 +447,7 @@
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (!userDoc.exists()) {
           const name = user.displayName;
-          await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email: user.email, photoURL: user.photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [] });
+          await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email: user.email, photoURL: user.photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [], role: "student" });
         }
       } catch (error) { showNotification("error", error.message); }
     });
@@ -453,6 +467,7 @@
         updateDoc(doc(db, "users", user.uid), { status: "online", lastSeen: serverTimestamp() });
         loadUserProfile(user);
         listenForFriendsAndRequests(user);
+        loadTeachers();
       } else {
         chatScreen.classList.add('hidden');
         chatScreen.classList.remove('flex');
@@ -737,6 +752,40 @@
     messageInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             sendMessage();
+        }
+    });
+
+    // --- Teachers Feature ---
+    function loadTeachers() {
+        const q = query(collection(db, "users"), where("role", "==", "teacher"));
+        onSnapshot(q, (snapshot) => {
+            teachersListContainer.innerHTML = '';
+            if (snapshot.empty) {
+                teachersListContainer.innerHTML = '<div class="text-gray-500 text-center py-4">No teachers available</div>';
+                return;
+            }
+            snapshot.forEach(doc => {
+                const teacher = doc.data();
+                teachersListContainer.innerHTML += `
+                    <div data-uid="${teacher.uid}" class="teacher-item flex items-center p-2 cursor-pointer hover:bg-gray-100 rounded">
+                        <div class="relative">
+                            <img src="${teacher.photoURL}" class="w-10 h-10 rounded-full mr-3">
+                            <span class="absolute bottom-0 right-3 w-2.5 h-2.5 ${teacher.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} border border-white rounded-full"></span>
+                        </div>
+                        <span>${teacher.name}</span>
+                    </div>
+                `;
+            });
+        });
+    }
+
+    teachersListContainer.addEventListener('click', async (e) => {
+        const item = e.target.closest('.teacher-item');
+        if (!item) return;
+        const uid = item.dataset.uid;
+        const teacherDoc = await getDoc(doc(db, "users", uid));
+        if (teacherDoc.exists()) {
+            startChat(teacherDoc.data());
         }
     });
 
