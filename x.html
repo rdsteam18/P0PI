@@ -120,7 +120,7 @@
     <!-- Main Chat Interface (hidden by default) -->
     <div id="chat-screen" class="hidden w-full h-full flex">
       <!-- Sidebar -->
-      <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out">
+      <aside id="sidebar" class="w-full md:w-1/3 lg:w-1/4 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out z-20">
         <!-- Sidebar Header -->
         <header class="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
           <div id="user-profile" class="flex items-center cursor-pointer">
@@ -180,9 +180,9 @@
       </aside>
 
       <!-- Main Chat Window -->
-      <main id="main-chat" class="w-full flex-col absolute md:relative h-full md:w-2/3 lg:w-3/4 transform translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out">
+      <main id="main-chat" class="w-full flex-col absolute md:relative h-full md:w-2/3 lg:w-3/4 transform translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out z-10">
         <!-- Welcome Screen -->
-        <div id="welcome-screen" class="flex-1 flex flex-col items-center justify-center text-center bg-gray-50 h-full">
+        <div id="welcome-screen" class="flex flex-1 flex-col items-center justify-center text-center bg-gray-50 h-full">
             <i class="fas fa-comments text-8xl text-gray-300"></i>
             <h2 class="mt-4 text-2xl font-semibold text-gray-600">Welcome to P0PI Chat</h2>
             <p class="text-gray-500">Select a friend to start messaging</p>
@@ -192,10 +192,7 @@
         <div id="chat-area" class="hidden flex-1 flex-col h-full">
             <!-- Chat Header -->
             <header id="chat-header" class="p-4 bg-white border-b border-gray-200 flex items-center justify-between flex-shrink-0">
-                <div class="flex items-center">
-                    <button id="back-to-sidebar" class="md:hidden text-gray-500 mr-4">
-                        <i class="fas fa-arrow-left"></i>
-                    </button>
+                <div id="chat-partner-info" class="flex items-center">
                     <!-- Chat partner info will be injected here -->
                 </div>
                <button id="summarize-chat-btn" class="gemini-btn text-white py-2 px-4 rounded-lg text-sm flex items-center">
@@ -300,13 +297,12 @@
     const friendCountBadge = document.getElementById('friendCount');
     const sidebar = document.getElementById('sidebar');
     const mainChat = document.getElementById('main-chat');
-    const backToSidebarBtn = document.getElementById('back-to-sidebar');
+    const chatPartnerInfo = document.getElementById('chat-partner-info');
 
 
     let currentChatPartner = null;
     let unsubscribeMessages = null;
-    let unsubscribeFriends = null;
-    let unsubscribeRequests = null;
+    let unsubscribeUserData = null;
     let currentChatHistory = [];
 
     // --- Gemini API Integration ---
@@ -420,7 +416,7 @@
         const user = userCredential.user;
         const photoURL = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=random&color=fff`;
         await updateProfile(user, { displayName: name, photoURL: photoURL });
-        await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, email, photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [] });
+        await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email, photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [] });
       } catch (error) { showNotification("error", error.message); }
     });
 
@@ -436,7 +432,8 @@
         const user = result.user;
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (!userDoc.exists()) {
-          await setDoc(doc(db, "users", user.uid), { uid: user.uid, name: user.displayName, email: user.email, photoURL: user.photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [] });
+          const name = user.displayName;
+          await setDoc(doc(db, "users", user.uid), { uid: user.uid, name, name_lowercase: name.toLowerCase(), email: user.email, photoURL: user.photoURL, status: "online", lastSeen: serverTimestamp(), friends: [], friendRequests: [], sentRequests: [] });
         }
       } catch (error) { showNotification("error", error.message); }
     });
@@ -460,15 +457,15 @@
         chatScreen.classList.add('hidden');
         chatScreen.classList.remove('flex');
         authScreen.classList.remove('hidden');
-        if (unsubscribeFriends) unsubscribeFriends();
-        if (unsubscribeRequests) unsubscribeRequests();
+        if (unsubscribeUserData) unsubscribeUserData();
       }
     });
 
     // --- UI & Chat Logic ---
 
     function loadUserProfile(user) {
-        onSnapshot(doc(db, "users", user.uid), (doc) => {
+        const userRef = doc(db, "users", user.uid);
+        onSnapshot(userRef, (doc) => {
             if (doc.exists()) {
                 const userData = doc.data();
                 document.getElementById('user-profile').innerHTML = `
@@ -493,21 +490,29 @@
         if (searchText.length < 2) { searchResults.innerHTML = ''; return; }
 
         const usersRef = collection(db, "users");
-        const q = query(usersRef, where("name", ">=", searchText), where("name", "<=", searchText + '\uf8ff'));
+        const q = query(usersRef, where("name_lowercase", ">=", searchText), where("name_lowercase", "<=", searchText + '\uf8ff'));
         
         const querySnapshot = await getDocs(q);
         const currentUserDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        const { friends = [], friendRequests = [] } = currentUserDoc.data();
+        const { friends = [], sentRequests = [] } = currentUserDoc.data();
         
         searchResults.innerHTML = '';
+        if (querySnapshot.empty) {
+            searchResults.innerHTML = '<p class="text-gray-500 p-2">No users found.</p>';
+            return;
+        }
         querySnapshot.forEach(doc => {
             const user = doc.data();
             if (user.uid === auth.currentUser.uid) return;
 
-            let buttonHtml = `<button data-uid="${user.uid}" class="add-friend-btn bg-indigo-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-indigo-600">Add</button>`;
+            let buttonHtml;
             if (friends.includes(user.uid)) {
                 buttonHtml = `<span class="text-sm text-gray-500">Friend</span>`;
-            } // We can add a "Pending" state later if needed
+            } else if (sentRequests.includes(user.uid)) {
+                buttonHtml = `<button disabled class="bg-gray-300 text-gray-500 px-3 py-1 rounded-lg text-sm">Pending</button>`;
+            } else {
+                buttonHtml = `<button data-uid="${user.uid}" class="add-friend-btn bg-indigo-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-indigo-600">Add</button>`;
+            }
 
             searchResults.innerHTML += `
                 <div class="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
@@ -525,24 +530,30 @@
         if (e.target.classList.contains('add-friend-btn')) {
             const targetUid = e.target.dataset.uid;
             sendFriendRequest(targetUid);
+            // Immediately update UI for feedback
+            e.target.textContent = 'Pending';
+            e.target.disabled = true;
+            e.target.classList.remove('bg-indigo-500', 'hover:bg-indigo-600');
+            e.target.classList.add('bg-gray-300', 'text-gray-500');
         }
     });
 
     async function sendFriendRequest(targetUid) {
         if (!auth.currentUser) return;
+        const currentUserRef = doc(db, "users", auth.currentUser.uid);
         const targetRef = doc(db, "users", targetUid);
         await updateDoc(targetRef, { friendRequests: arrayUnion(auth.currentUser.uid) });
+        await updateDoc(currentUserRef, { sentRequests: arrayUnion(targetUid) });
         showNotification('success', 'Friend request sent!');
     }
 
     function listenForFriendsAndRequests(user) {
-        if (unsubscribeFriends) unsubscribeFriends();
+        if (unsubscribeUserData) unsubscribeUserData();
         const userRef = doc(db, "users", user.uid);
-        unsubscribeFriends = onSnapshot(userRef, async (userDoc) => {
+        unsubscribeUserData = onSnapshot(userRef, async (userDoc) => {
             if (!userDoc.exists()) return;
             const { friends = [], friendRequests = [] } = userDoc.data();
             
-            // Render Friend Requests
             requestCountBadge.textContent = friendRequests.length || '';
             if (friendRequests.length > 0) {
                 friendRequestsContainer.innerHTML = '';
@@ -554,21 +565,19 @@
                             <div class="flex items-center justify-between p-2">
                                 <div class="flex items-center">
                                     <img src="${requester.photoURL}" class="w-8 h-8 rounded-full mr-2">
-                                    <span>${requester.name}</span>
+                                    <span class="text-sm">${requester.name}</span>
                                 </div>
                                 <div>
                                     <button data-uid="${uid}" class="accept-request-btn text-green-500 hover:text-green-700 mr-2"><i class="fas fa-check-circle"></i></button>
                                     <button data-uid="${uid}" class="reject-request-btn text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button>
                                 </div>
-                            </div>
-                        `;
+                            </div>`;
                     }
                 }
             } else {
                 friendRequestsContainer.innerHTML = '<div class="text-gray-500 text-center py-4">No new requests</div>';
             }
 
-            // Render Friends List
             friendCountBadge.textContent = friends.length || '';
             if (friends.length > 0) {
                 friendsListContainer.innerHTML = '';
@@ -583,8 +592,7 @@
                                     <span class="absolute bottom-0 right-3 w-2.5 h-2.5 ${friend.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} border border-white rounded-full"></span>
                                 </div>
                                 <span>${friend.name}</span>
-                            </div>
-                        `;
+                            </div>`;
                     }
                 }
             } else {
@@ -602,11 +610,13 @@
         if (button.classList.contains('accept-request-btn')) {
             const friendRef = doc(db, "users", uid);
             await updateDoc(currentUserRef, { friendRequests: arrayRemove(uid), friends: arrayUnion(uid) });
-            await updateDoc(friendRef, { friends: arrayUnion(auth.currentUser.uid) });
+            await updateDoc(friendRef, { friends: arrayUnion(auth.currentUser.uid), sentRequests: arrayRemove(auth.currentUser.uid) });
             showNotification('success', 'Friend added!');
         }
         if (button.classList.contains('reject-request-btn')) {
             await updateDoc(currentUserRef, { friendRequests: arrayRemove(uid) });
+            const friendRef = doc(db, "users", uid);
+            await updateDoc(friendRef, { sentRequests: arrayRemove(auth.currentUser.uid) });
             showNotification('info', 'Request rejected.');
         }
     });
@@ -627,14 +637,13 @@
         chatArea.classList.remove('hidden');
         chatArea.classList.add('flex');
         
-        // Mobile view: show chat, hide sidebar
         if (window.innerWidth < 768) {
             sidebar.classList.add('-translate-x-full');
             mainChat.classList.remove('translate-x-full');
         }
 
-        chatHeader.querySelector('.flex.items-center').innerHTML = `
-            <button id="back-to-sidebar" class="md:hidden text-gray-500 mr-4">
+        chatPartnerInfo.innerHTML = `
+            <button id="back-to-sidebar-btn" class="md:hidden text-gray-500 mr-4">
                 <i class="fas fa-arrow-left"></i>
             </button>
             <img src="${partner.photoURL}" alt="${partner.name}" class="w-10 h-10 rounded-full mr-3">
@@ -643,16 +652,14 @@
                 <p class="text-sm ${partner.status === 'online' ? 'text-green-500' : 'text-gray-500'}">${partner.status}</p>
             </div>
         `;
+        document.getElementById('back-to-sidebar-btn').addEventListener('click', () => {
+            sidebar.classList.remove('-translate-x-full');
+            mainChat.classList.add('translate-x-full');
+            currentChatPartner = null;
+            if(unsubscribeMessages) unsubscribeMessages();
+        });
         loadMessages();
     }
-    
-    // Mobile navigation
-    backToSidebarBtn.addEventListener('click', () => {
-        sidebar.classList.remove('-translate-x-full');
-        mainChat.classList.add('translate-x-full');
-        currentChatPartner = null;
-        if(unsubscribeMessages) unsubscribeMessages();
-    });
     
     // Accordion logic
     document.querySelectorAll('.accordion-header').forEach(header => {
